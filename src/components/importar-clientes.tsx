@@ -150,6 +150,12 @@ export function ImportarClientesDialog({
           return;
         }
         const sheet = workbook.Sheets[firstSheetName];
+        if (!sheet) {
+          toast.error("Não foi possível ler a aba da planilha.");
+          setLinhas([]);
+          setCarregandoLeitura(false);
+          return;
+        }
         const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false }) as (
           | string
           | number
