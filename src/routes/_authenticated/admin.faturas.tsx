@@ -70,6 +70,27 @@ function PaginaFaturas() {
   const [pagina, setPagina] = useState(0);
   const [editando, setEditando] = useState<Fatura | null>(null);
   const [form, setForm] = useState(vazio);
+  const [confirmandoApagar, setConfirmandoApagar] = useState(false);
+  const [confirmacaoTexto, setConfirmacaoTexto] = useState("");
+  const executarApagarTudo = useServerFn(apagarTudo);
+
+  const apagarTodos = useMutation({
+    mutationFn: async () => executarApagarTudo({}),
+    onSuccess: (r) => {
+      toast.success(
+        `Base limpa: ${r.clientes} cliente(s), ${r.faturas} fatura(s) e ${r.pagamentos} pagamento(s) removidos.`,
+      );
+      setConfirmandoApagar(false);
+      setConfirmacaoTexto("");
+      setBusca("");
+      setPagina(0);
+      void queryClient.invalidateQueries({ queryKey: ["faturas-unificado"] });
+      void queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-metricas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const termo = busca.trim();
   const digitos = somenteDigitos(termo);
