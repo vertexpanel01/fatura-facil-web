@@ -282,8 +282,8 @@ function PaginaConsulta() {
               Quite suas faturas em atraso com até 70% de desconto!
             </h2>
             <p className="mt-4 max-w-xl leading-relaxed opacity-90">
-              Regularize sua situação de forma 100% online, segura e intuitiva. Consulte gratuitamente pelo seu CPF
-              e escolha pagar agora com PIX.
+              Regularize sua situação de forma 100% online, segura e intuitiva. Consulte gratuitamente pelo seu telefone
+              celular e escolha pagar agora com PIX.
             </p>
             <Button
               size="lg"
