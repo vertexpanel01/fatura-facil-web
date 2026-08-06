@@ -16,16 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { obterMetricasAcessos } from "@/lib/acessos.functions";
 import { formatarData, formatarMoeda, formatarTelefone } from "@/lib/format";
 
-function formatarDataHora(iso: string) {
-  return new Date(iso).toLocaleString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 
 export const Route = createFileRoute("/_authenticated/admin/")({
@@ -180,35 +170,6 @@ function Dashboard() {
           />
         </div>
 
-        <div className="rounded-2xl border border-border bg-card shadow-card">
-          <h3 className="border-b border-border px-5 py-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Últimos acessos
-          </h3>
-          <div className="divide-y divide-border">
-            {(metricas?.recentes ?? []).map((a) => (
-              <div key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-                <div>
-                  <p className="font-medium text-foreground">
-                    {a.telefone_consultado ? formatarTelefone(a.telefone_consultado) : "Visita à página inicial"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatarDataHora(a.data_hora)} · {a.pagina}
-                  </p>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {a.telefone_consultado
-                    ? a.sucesso
-                      ? `Fatura ${formatarMoeda(a.valor_desconto ?? 0)}`
-                      : "Sem fatura"
-                    : "—"}
-                </p>
-              </div>
-            ))}
-            {!carregandoMetricas && !(metricas?.recentes ?? []).length ? (
-              <p className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhum acesso registrado ainda.</p>
-            ) : null}
-          </div>
-        </div>
       </section>
 
 
