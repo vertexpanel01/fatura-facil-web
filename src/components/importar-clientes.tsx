@@ -174,6 +174,7 @@ export function ImportarClientesDialog({
   const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
   const [carregandoLeitura, setCarregandoLeitura] = useState(false);
   const [vencimentoGlobal, setVencimentoGlobal] = useState<Date | undefined>();
+  const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const importar = useMutation({
@@ -181,19 +182,35 @@ export function ImportarClientesDialog({
       const validas = linhas.filter((l) => l.erros.length === 0);
       if (!validas.length) throw new Error("Nenhuma linha válida para importar.");
       if (!vencimentoGlobal) throw new Error("Escolha a data de vencimento das faturas.");
-      const clientes = validas.map((l) => ({
-        nome: l.nome,
-        telefone: l.telefone,
-        email: l.email,
-        documento: l.documento,
-        observacoes: l.observacoes,
-        valor_original: l.valorOriginal,
-        valor_desconto: l.valorDesconto,
-        vencimento: l.vencimento,
-      }));
-      return importarClientes({
-        data: { clientes, vencimento_global: format(vencimentoGlobal, "yyyy-MM-dd") },
-      });
+
+      const vencimento = format(vencimentoGlobal, "yyyy-MM-dd");
+      const TAMANHO_LOTE = 500;
+      const totais = { importados: 0, faturasCriadas: 0, faturasAtualizadas: 0 };
+
+      setProgresso({ feitos: 0, total: validas.length });
+
+      for (let i = 0; i < validas.length; i += TAMANHO_LOTE) {
+        const lote = validas.slice(i, i + TAMANHO_LOTE).map((l) => ({
+          nome: l.nome || null,
+          telefone: l.telefone,
+          email: l.email,
+          documento: l.documento,
+          observacoes: l.observacoes,
+          valor_original: l.valorOriginal,
+          valor_desconto: l.valorDesconto,
+        }));
+
+        const res = await importarClientes({
+          data: { clientes: lote, vencimento_global: vencimento },
+        });
+
+        totais.importados += res.importados;
+        totais.faturasCriadas += res.faturasCriadas;
+        totais.faturasAtualizadas += res.faturasAtualizadas;
+        setProgresso({ feitos: Math.min(i + TAMANHO_LOTE, validas.length), total: validas.length });
+      }
+
+      return totais;
     },
     onSuccess: (res) => {
       const partes = [`${res.importados} clientes importados`];
@@ -202,11 +219,16 @@ export function ImportarClientesDialog({
       toast.success(`${partes.join(" · ")}.`);
       setLinhas([]);
       setNomeArquivo(null);
+      setProgresso(null);
       setAberto(false);
       onSuccess();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setProgresso(null);
+      toast.error(e.message);
+    },
   });
+
 
   function processarArquivo(file: File) {
     setCarregandoLeitura(true);
