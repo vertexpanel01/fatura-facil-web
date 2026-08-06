@@ -282,15 +282,15 @@ function PaginaConsulta() {
               Quite suas faturas em atraso com até 70% de desconto!
             </h2>
             <p className="mt-4 max-w-xl leading-relaxed opacity-90">
-              Regularize sua situação de forma 100% online, segura e intuitiva. Consulte gratuitamente pelo seu número
-              de telefone e escolha pagar agora com PIX.
+              Regularize sua situação de forma 100% online, segura e intuitiva. Consulte gratuitamente pelo seu CPF
+              e escolha pagar agora com PIX.
             </p>
             <Button
               size="lg"
               className="mt-8 h-14 rounded-full bg-cta px-10 text-base font-bold text-cta-foreground hover:bg-cta/90"
               onClick={() => {
                 window.scrollTo({ top: 0, behavior: "smooth" });
-                document.getElementById("telefone")?.focus();
+                document.getElementById("cpf")?.focus();
               }}
             >
               Consultar gratuitamente
