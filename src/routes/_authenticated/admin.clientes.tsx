@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import { Pencil, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,12 +101,6 @@ function PaginaClientes() {
       ? c.telefone.includes(termo)
       : c.nome.toLowerCase().includes(busca.trim().toLowerCase()),
   );
-
-  function abrirNovo() {
-    setEditando(null);
-    setForm(vazio);
-    setAberto(true);
-  }
 
   function abrirEdicao(c: Cliente) {
     setEditando(c);
