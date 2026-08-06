@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 import bannerCasal from "@/assets/banner-casal.jpg";
 import logo from "@/assets/logo-claro.png";
-import mulherSorrindo from "@/assets/mulher-sorrindo.jpg";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatarTelefone, somenteDigitos } from "@/lib/format";
@@ -274,40 +274,6 @@ function PaginaConsulta() {
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="bg-primary">
-        <div className="mx-auto grid max-w-7xl items-end gap-8 px-4 pt-14 lg:grid-cols-2">
-          <div className="pb-14 text-primary-foreground">
-            <h2 className="text-2xl font-extrabold leading-tight sm:text-4xl">
-              Quite suas faturas em atraso com até 70% de desconto!
-            </h2>
-            <p className="mt-4 max-w-xl leading-relaxed opacity-90">
-              Regularize sua situação de forma 100% online, segura e intuitiva. Consulte gratuitamente pelo seu telefone
-              celular e escolha pagar agora com PIX.
-            </p>
-            <Button
-              size="lg"
-              className="mt-8 h-14 rounded-full bg-cta px-10 text-base font-bold text-cta-foreground hover:bg-cta/90"
-              onClick={() => {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-                document.getElementById("cpf")?.focus();
-              }}
-            >
-              Consultar gratuitamente
-            </Button>
-          </div>
-          <div className="flex justify-center lg:justify-end">
-            <img
-              src={mulherSorrindo}
-              alt="Mulher sorrindo segurando um celular"
-              width={912}
-              height={1008}
-              loading="lazy"
-              className="h-64 w-auto object-contain sm:h-80 lg:h-96"
-            />
-          </div>
-        </div>
-      </section>
 
       <footer className="bg-card py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 text-center text-sm text-muted-foreground">
