@@ -130,9 +130,9 @@ function PaginaClientes() {
         </div>
         <div className="flex flex-wrap gap-2">
           <ImportarClientesDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ["clientes"] })}>
-            <Button variant="outline">
-              <Upload className="size-4" />
-              Importar planilha
+            <Button size="lg" className="text-base font-semibold shadow-sm">
+              <Upload className="size-5" />
+              Importar Planilha
             </Button>
           </ImportarClientesDialog>
           <Dialog open={aberto} onOpenChange={setAberto}>
