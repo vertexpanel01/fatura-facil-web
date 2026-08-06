@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { ImportarClientesDialog } from "@/components/importar-clientes";
 import { supabase } from "@/integrations/supabase/client";
+import { apagarTudo } from "@/lib/clientes.functions";
 import { STATUS_FATURA, formatarData, formatarMoeda, formatarTelefone, somenteDigitos } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/faturas")({
