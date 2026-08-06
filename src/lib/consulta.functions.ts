@@ -61,14 +61,28 @@ export const consultarFaturas = createServerFn({ method: "POST" })
     const cliente = clientes?.[0];
     if (!cliente) return { encontrado: false };
 
+    // Apenas a fatura pendente do mês corrente — faturas pagas/canceladas
+    // e de outros meses não são exibidas na consulta pública.
+    const hoje = new Date();
+    const primeiroDia = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1))
+      .toISOString()
+      .slice(0, 10);
+    const ultimoDia = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 0))
+      .toISOString()
+      .slice(0, 10);
+
     const { data: faturas, error: erroFaturas } = await supabaseAdmin
       .from("faturas")
       .select("id, descricao, referencia, valor_original, valor_desconto, vencimento, status")
       .eq("cliente_id", cliente.id)
-      // Todos os estados são exibidos ao cliente, cada um com sua mensagem própria.
-      .order("vencimento", { ascending: false });
+      .in("status", ["em_aberto", "vencida", "em_processamento", "falhou", "expirada"])
+      .gte("vencimento", primeiroDia)
+      .lte("vencimento", ultimoDia)
+      .order("vencimento", { ascending: false })
+      .limit(1);
 
     if (erroFaturas) throw new Error("Não foi possível consultar no momento.");
+
 
     return {
       encontrado: true,

@@ -111,7 +111,7 @@ function PaginaFatura() {
 
       <main className="mx-auto mt-10 max-w-4xl space-y-5 px-4">
         <h2 className="text-lg font-bold text-foreground">
-          {faturas.length ? "Suas faturas" : "Nenhuma fatura encontrada"}
+          {faturas.length ? "Sua fatura" : "Nenhuma fatura em aberto para este mês"}
         </h2>
 
         {faturas.length ? (
@@ -127,18 +127,19 @@ function PaginaFatura() {
           <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-card">
             <SearchX className="mx-auto size-9 text-primary" />
             <p className="mt-4 text-base font-bold text-foreground">
-              Não há faturas para {formatarTelefone(resultado.cliente.telefone)}
+              Nenhuma fatura em aberto para este mês
             </p>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Seu cadastro está em dia: nenhuma fatura em aberto, vencida ou pendente de pagamento foi
-              localizada para este telefone. Se você esperava encontrar uma fatura, confira o número
-              digitado ou fale com o atendimento.
+              Não localizamos fatura aguardando pagamento neste mês para o telefone{" "}
+              {formatarTelefone(resultado.cliente.telefone)}. Se você já efetuou o pagamento, não há
+              nada pendente.
             </p>
             <Button asChild className="mt-6 rounded-full bg-cta text-cta-foreground hover:bg-cta/90">
               <Link to="/">Consultar outro telefone</Link>
             </Button>
           </div>
         )}
+
 
         <p className="flex items-center gap-2 pt-4 text-xs text-muted-foreground">
           <ShieldCheck className="size-4" />
