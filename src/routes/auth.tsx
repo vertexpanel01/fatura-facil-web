@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import logo from "@/assets/logo-claro.png";
@@ -88,6 +88,11 @@ function PaginaAuth() {
               <p className="text-sm text-muted-foreground">Acesso restrito a administradores</p>
             </div>
           </div>
+
+          <p className="mb-5 flex items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-3 py-2 text-xs font-medium text-success">
+            <ShieldCheck className="size-4 shrink-0" />
+            Banco de dados e autenticação conectados — nenhuma configuração adicional é necessária.
+          </p>
 
           <Tabs defaultValue="entrar">
             <TabsList className="grid w-full grid-cols-2">
