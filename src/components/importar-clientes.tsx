@@ -135,6 +135,15 @@ function parseStatus(valor: string): string | null {
   return apelidos[n] ?? null;
 }
 
+function calcularCabecalhos(raw: CelulaBruta[][], semCabecalho: boolean): string[] {
+  const primeira = raw[0];
+  if (!primeira) return [];
+  const largura = raw.reduce((max, l) => Math.max(max, l.length), 0);
+  return Array.from({ length: largura }, (_, i) =>
+    semCabecalho ? `Coluna ${i + 1}` : String(primeira[i] ?? "").trim() || `Coluna ${i + 1}`,
+  );
+}
+
 function mapeamentoAutomatico(cabecalhos: string[]): Record<Campo, number | null> {
   const mapa = {} as Record<Campo, number | null>;
   for (const c of CAMPOS) {
