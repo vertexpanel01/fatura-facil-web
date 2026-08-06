@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pencil, Plus, Search } from "lucide-react";
+import { Pencil, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -152,12 +152,6 @@ function PaginaFaturas() {
       : (f.clientes?.nome ?? "").toLowerCase().includes(busca.trim().toLowerCase()),
   );
 
-  function abrirNova() {
-    setEditando(null);
-    setForm(vazio);
-    setAberto(true);
-  }
-
   function abrirEdicao(f: Fatura) {
     setEditando(f);
     setForm({
@@ -178,16 +172,14 @@ function PaginaFaturas() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Faturas</h1>
-          <p className="text-sm text-muted-foreground">Cadastre, edite e altere o status das faturas.</p>
+          <p className="text-sm text-muted-foreground">
+            As faturas são criadas automaticamente pela importação da planilha de clientes. Aqui você edita valores e
+            altera o status.
+          </p>
         </div>
         <Dialog open={aberto} onOpenChange={setAberto}>
-          <DialogTrigger asChild>
-            <Button onClick={abrirNova}>
-              <Plus className="size-4" />
-              Nova fatura
-            </Button>
-          </DialogTrigger>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
+
             <DialogHeader>
               <DialogTitle>{editando ? "Editar fatura" : "Nova fatura"}</DialogTitle>
             </DialogHeader>
