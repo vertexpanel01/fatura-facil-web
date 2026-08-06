@@ -80,11 +80,28 @@ const STATUS_VALIDOS = Object.keys(STATUS_FATURA);
 
 const SEM_COLUNA = "__nenhuma__";
 
+/**
+ * Aceita "1.200,50", "1200.50", "R$ 1.200", "1 200,50" e células numéricas.
+ * Devolve null apenas quando o conteúdo não é reconhecível como número.
+ */
 function parseMoeda(valor: string): number | null {
-  if (!valor) return null;
-  const limpo = valor.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  if (!valor.trim()) return null;
+  let limpo = valor.replace(/[^\d,.-]/g, "");
+  const temVirgula = limpo.includes(",");
+  const temPonto = limpo.includes(".");
+  if (temVirgula && temPonto) {
+    // O último separador é o decimal.
+    limpo =
+      limpo.lastIndexOf(",") > limpo.lastIndexOf(".")
+        ? limpo.replace(/\./g, "").replace(",", ".")
+        : limpo.replace(/,/g, "");
+  } else if (temVirgula) {
+    limpo = limpo.replace(/,(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  } else if (temPonto) {
+    limpo = limpo.replace(/\.(?=\d{3}(\D|$))/g, "");
+  }
   const n = Number(limpo);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) ? Math.abs(n) : null;
 }
 
 function normalizarChave(chave: string): string {
