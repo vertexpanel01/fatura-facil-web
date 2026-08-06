@@ -65,11 +65,11 @@ const duvidas = [
   },
   {
     p: "Como consultar minha fatura?",
-    r: "Basta digitar o seu CPF e clicar em Consultar Fatura. Você verá o nome do titular, o valor original, o valor com desconto, o vencimento e o status.",
+    r: "Basta digitar o seu telefone celular e clicar em Consultar Fatura. Você verá o nome do titular, o valor original, o valor com desconto, o vencimento e o status.",
   },
   {
-    p: "Não lembro qual CPF está cadastrado. O que faço?",
-    r: "No momento, a consulta é feita exclusivamente pelo CPF do cliente. Em caso de dúvida, entre em contato com o atendimento para confirmar o cadastro.",
+    p: "Não lembro qual telefone está cadastrado. O que faço?",
+    r: "No momento, a consulta é feita exclusivamente pelo número de telefone celular do cliente. Em caso de dúvida, entre em contato com o atendimento para confirmar o cadastro.",
   },
   {
     p: "Como funciona o pagamento?",
