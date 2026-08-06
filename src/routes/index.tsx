@@ -21,7 +21,7 @@ import logo from "@/assets/logo-claro.png";
 import mulherSorrindo from "@/assets/mulher-sorrindo.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatarTelefone, somenteDigitos } from "@/lib/format";
+import { formatarCpf, somenteDigitos } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
   head: () => ({
