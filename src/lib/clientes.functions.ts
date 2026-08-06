@@ -114,7 +114,15 @@ export const importarClientes = createServerFn({ method: "POST" })
       )
       .select("id, telefone");
 
-    if (erroClientes) throw new Error(`Erro ao salvar clientes: ${erroClientes.message}`);
+    if (erroClientes) {
+      console.error("[importarClientes] falha ao salvar clientes", {
+        quantidade: registros.length,
+        erro: erroClientes.message,
+        detalhe: erroClientes.details,
+      });
+      throw new Error(`Erro ao salvar clientes: ${erroClientes.message}`);
+    }
+
 
     const idPorTelefone = new Map((clientesSalvos ?? []).map((c) => [c.telefone, c.id]));
 
