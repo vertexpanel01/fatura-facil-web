@@ -475,12 +475,27 @@ export function ImportarClientesDialog({
                   Escolha a data de vencimento acima para liberar a importação.
                 </p>
               )}
+              {progresso && (
+                <div className="space-y-1">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${Math.round((progresso.feitos / progresso.total) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {progresso.feitos.toLocaleString("pt-BR")} de {progresso.total.toLocaleString("pt-BR")} importados
+                  </p>
+                </div>
+              )}
               <Button
                 className="w-full"
                 disabled={!validas.length || !vencimentoGlobal || importar.isPending}
                 onClick={() => importar.mutate()}
               >
-                {importar.isPending ? "Importando..." : `Importar ${validas.length} clientes`}
+                {importar.isPending
+                  ? "Importando..."
+                  : `Importar ${validas.length.toLocaleString("pt-BR")} clientes`}
               </Button>
             </div>
           )}
