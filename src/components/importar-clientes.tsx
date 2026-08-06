@@ -277,12 +277,13 @@ export function ImportarClientesDialog({
         const cabecalhos = firstRow.map((h) => String(h ?? ""));
         const mapa = mapearColunas(cabecalhos);
 
-        if (mapa["nome"] === undefined || mapa["telefone"] === undefined) {
-          toast.error("Colunas obrigatórias não encontradas: Nome e Telefone.");
+        if (mapa["telefone"] === undefined) {
+          toast.error("Coluna obrigatória não encontrada: telefone.");
           setLinhas([]);
           setCarregandoLeitura(false);
           return;
         }
+
 
         const processadas = raw
           .slice(1)
