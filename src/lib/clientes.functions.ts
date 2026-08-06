@@ -2,6 +2,16 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+const STATUS_VALIDOS = [
+  "em_aberto",
+  "paga",
+  "vencida",
+  "cancelada",
+  "expirada",
+  "falhou",
+  "em_processamento",
+] as const;
+
 const clienteImportSchema = z.object({
   // Nome é opcional: planilhas com apenas telefone + valores são aceitas.
   nome: z.string().nullable().optional(),
@@ -11,7 +21,9 @@ const clienteImportSchema = z.object({
   observacoes: z.string().nullable().optional(),
   valor_original: z.number().nonnegative().nullable().optional(),
   valor_desconto: z.number().nonnegative().nullable().optional(),
+  status: z.enum(STATUS_VALIDOS).nullable().optional(),
 });
+
 
 const importarClientesSchema = z.object({
   // Lotes de até 500 linhas por chamada — o cliente divide a planilha.
