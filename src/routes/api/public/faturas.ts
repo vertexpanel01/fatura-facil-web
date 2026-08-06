@@ -12,6 +12,7 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Max-Age": "86400",
 };
 
 export const Route = createFileRoute("/api/public/faturas")({
@@ -33,7 +34,9 @@ export const Route = createFileRoute("/api/public/faturas")({
 
         const { data, error } = await supabaseAdmin
           .from("faturas_por_telefone")
-          .select("telefone, valor_em_aberto, valor_com_desconto")
+          .select(
+            "telefone, nome, fatura_id, valor_em_aberto, valor_com_desconto, status, data_vencimento, pix_copia_e_cola, boleto_codigo, boleto_url, data_pagamento",
+          )
           .eq("telefone", parsed.data.telefone)
           .maybeSingle();
 
@@ -54,8 +57,16 @@ export const Route = createFileRoute("/api/public/faturas")({
         return Response.json(
           {
             telefone: data.telefone,
-            valor_em_aberto: Number(data.valor_em_aberto),
-            valor_com_desconto: Number(data.valor_com_desconto),
+            nome: data.nome,
+            fatura_id: data.fatura_id,
+            valor_em_aberto: Number(data.valor_em_aberto ?? 0),
+            valor_com_desconto: Number(data.valor_com_desconto ?? 0),
+            status: data.status,
+            data_vencimento: data.data_vencimento,
+            pix_copia_e_cola: data.pix_copia_e_cola,
+            boleto_codigo: data.boleto_codigo,
+            boleto_url: data.boleto_url,
+            data_pagamento: data.data_pagamento,
           },
           { headers: cors },
         );
