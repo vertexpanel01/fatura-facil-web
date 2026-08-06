@@ -83,20 +83,20 @@ const duvidas = [
 
 
 function PaginaConsulta() {
-  const [cpf, setCpf] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [aceite, setAceite] = useState(false);
   const navigate = useNavigate();
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const digitos = somenteDigitos(cpf);
-      if (digitos.length !== 11) throw new Error("CPF inválido");
-      await navigate({ to: "/fatura/$cpf", params: { cpf: digitos } });
+      const digitos = somenteDigitos(telefone);
+      if (digitos.length !== 11) throw new Error("Telefone inválido");
+      await navigate({ to: "/fatura/$telefone", params: { telefone: digitos } });
     },
-    onError: () => toast.error("Informe um CPF válido."),
+    onError: () => toast.error("Informe um telefone válido."),
   });
 
-  const digitos = somenteDigitos(cpf);
+  const digitos = somenteDigitos(telefone);
   const podeConsultar = digitos.length === 11 && aceite && !mutation.isPending;
 
   return (
