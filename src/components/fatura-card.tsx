@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
+import { confirmarPagamentoPix, consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
 import type { FaturaPublica } from "@/lib/consulta.functions";
 import {
   formatarData,
@@ -79,6 +79,7 @@ export function CardFatura({
 }) {
   const gerarPix = useServerFn(gerarPixFatura);
   const verStatus = useServerFn(consultarStatusFatura);
+  const confirmarPix = useServerFn(confirmarPagamentoPix);
 
   const [status, setStatus] = useState<string>(fatura.status);
   const [qr, setQr] = useState<string | null>(null);
@@ -129,6 +130,16 @@ export function CardFatura({
     onSuccess: () => toast.success("Código PIX copiado!", { description: "Cole no app do seu banco." }),
     onError: () => toast.error("Não foi possível copiar. Selecione o código manualmente."),
   });
+
+  const confirmar = useMutation({
+    mutationFn: async () => confirmarPix({ data: { fatura_id: fatura.id } }),
+    onSuccess: (r) => {
+      setStatus(r.status);
+      toast.success("Pagamento confirmado! Fatura baixada.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   return (
     <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
@@ -226,11 +237,23 @@ export function CardFatura({
                 Copiar código PIX
               </Button>
 
+              <Button
+                variant="outline"
+                size="lg"
+                className="mt-3 h-12 w-full rounded-full"
+                onClick={() => confirmar.mutate()}
+                disabled={!copiaCola || confirmar.isPending}
+              >
+                {confirmar.isPending ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                Já efetuei o pagamento
+              </Button>
+
               <p className="mt-4 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
                 <Loader2 className="size-3.5 animate-spin" />
-                Aguardando pagamento…
+                Aguardando confirmação do pagamento…
               </p>
             </div>
+
 
             <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <ShieldCheck className="size-4" />
