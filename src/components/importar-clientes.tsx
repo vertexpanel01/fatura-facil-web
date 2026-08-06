@@ -251,12 +251,32 @@ export function ImportarClientesDialog({
   const linhas = useMemo<LinhaPlanilha[]>(() => {
     if (!mapa || !mapeamentoCompleto) return [];
     return brutas
-      .map((linha, idx) => validarLinha(linha, mapa, idx + 2))
-      .filter((l) => l.nome || l.telefone || l.email || l.valorOriginal !== null);
+      .filter((linha) => linha.some((c) => String(c ?? "").trim() !== ""))
+      .map((linha, idx) => validarLinha(linha, mapa, idx + 2));
   }, [brutas, mapa, mapeamentoCompleto]);
 
   const validas = linhas.filter((l) => l.erros.length === 0);
   const invalidas = linhas.filter((l) => l.erros.length > 0);
+  const comAviso = validas.filter((l) => l.avisos.length > 0);
+
+  function baixarRejeitadas() {
+    const dados = [
+      ["linha_da_planilha", "nome", "telefone", "valor_em_aberto", "valor_com_desconto", "motivo"],
+      ...invalidas.map((l) => [
+        l.linha,
+        l.nome,
+        l.telefone,
+        l.valorOriginal ?? "",
+        l.valorDesconto ?? "",
+        l.erros.join(" | "),
+      ]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Rejeitadas");
+    XLSX.writeFile(wb, "linhas-rejeitadas.xlsx");
+  }
+
 
   const importar = useMutation({
     mutationFn: async () => {
