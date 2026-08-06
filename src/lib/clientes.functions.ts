@@ -57,7 +57,9 @@ export const importarClientes = createServerFn({ method: "POST" })
       observacoes: c.observacoes?.trim() || null,
       valor_original: c.valor_original ?? 0,
       valor_desconto: c.valor_desconto ?? 0,
+      status: c.status ?? "em_aberto",
     }));
+
 
     const { data: resultado, error } = await supabase.rpc("importar_faturas_lote", {
       p_registros: registros,
