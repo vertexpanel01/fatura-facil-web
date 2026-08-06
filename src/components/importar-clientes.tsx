@@ -13,7 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { importarClientes } from "@/lib/clientes.functions";
-import { somenteDigitos, formatarTelefone } from "@/lib/format";
+import { somenteDigitos, formatarTelefone, formatarMoeda } from "@/lib/format";
 
 type LinhaPlanilha = {
   nome: string;
@@ -21,6 +21,9 @@ type LinhaPlanilha = {
   email: string | null;
   documento: string | null;
   observacoes: string | null;
+  valorOriginal: number | null;
+  valorDesconto: number | null;
+  vencimento: string | null;
   linha: number;
   erros: string[];
 };
@@ -31,7 +34,37 @@ const COLUNAS_ESPERADAS = [
   { chaves: ["email", "e-mail", "mail"], campo: "email" as const },
   { chaves: ["documento", "cpf", "cnpj", "cpf/cnpj", "doc"], campo: "documento" as const },
   { chaves: ["observacoes", "observações", "obs", "notas"], campo: "observacoes" as const },
+  {
+    chaves: ["valororiginal", "valoremaberto", "valor", "valoraberto", "valordafatura", "valorfatura"],
+    campo: "valorOriginal" as const,
+  },
+  {
+    chaves: ["valorcomdesconto", "valordesconto", "desconto", "valorpromocional"],
+    campo: "valorDesconto" as const,
+  },
+  { chaves: ["vencimento", "datavencimento", "datadevencimento"], campo: "vencimento" as const },
 ];
+
+function parseMoeda(valor: string): number | null {
+  if (!valor) return null;
+  const limpo = valor.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  const n = Number(limpo);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseData(valor: string): string | null {
+  if (!valor) return null;
+  const br = valor.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  const iso = valor.match(/^\d{4}-\d{2}-\d{2}/);
+  if (iso) return iso[0];
+  const serial = Number(valor);
+  if (Number.isFinite(serial) && serial > 20000 && serial < 60000) {
+    const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+    return d.toISOString().slice(0, 10);
+  }
+  return null;
+}
 
 function normalizarChave(chave: string): string {
   return chave
@@ -73,6 +106,9 @@ function validarLinha(
   const email = extrairValor(linha, mapa["email"]) || null;
   const documento = extrairValor(linha, mapa["documento"]) || null;
   const observacoes = extrairValor(linha, mapa["observacoes"]) || null;
+  const valorOriginal = parseMoeda(extrairValor(linha, mapa["valorOriginal"]));
+  const valorDesconto = parseMoeda(extrairValor(linha, mapa["valorDesconto"]));
+  const vencimento = parseData(extrairValor(linha, mapa["vencimento"]));
   const erros: string[] = [];
 
   if (!nome) erros.push("Nome é obrigatório.");
@@ -82,14 +118,29 @@ function validarLinha(
     erros.push("E-mail inválido.");
   }
 
-  return { nome, telefone, email, documento, observacoes, linha: numeroLinha, erros };
+  if (valorDesconto !== null && valorOriginal !== null && valorDesconto > valorOriginal) {
+    erros.push("Valor com desconto maior que o valor em aberto.");
+  }
+
+  return {
+    nome,
+    telefone,
+    email,
+    documento,
+    observacoes,
+    valorOriginal,
+    valorDesconto,
+    vencimento,
+    linha: numeroLinha,
+    erros,
+  };
 }
 
 export function gerarModeloPlanilha() {
   const dados = [
-    ["Nome", "Telefone", "Email", "CPF/CNPJ", "Observacoes"],
-    ["Maria Silva", "11999999999", "maria@email.com", "12345678900", "Cliente ativo"],
-    ["Joao Souza", "21988888888", "joao@email.com", "", ""],
+    ["Nome", "Telefone", "Email", "CPF/CNPJ", "Valor em aberto", "Valor com desconto", "Vencimento", "Observacoes"],
+    ["Maria Silva", "11999999999", "maria@email.com", "12345678900", 1200.5, 499.9, "31/12/2026", "Cliente ativo"],
+    ["Joao Souza", "21988888888", "joao@email.com", "", 800, 350, "15/01/2027", ""],
   ];
   const ws = XLSX.utils.aoa_to_sheet(dados);
   const wb = XLSX.utils.book_new();
@@ -120,11 +171,16 @@ export function ImportarClientesDialog({
         email: l.email,
         documento: l.documento,
         observacoes: l.observacoes,
+        valor_original: l.valorOriginal,
+        valor_desconto: l.valorDesconto,
+        vencimento: l.vencimento,
       }));
       return importarClientes({ data: { clientes } });
     },
     onSuccess: (res) => {
-      toast.success(`${res.importados} clientes importados com sucesso.`);
+      toast.success(
+        `${res.importados} clientes importados${res.faturasCriadas ? ` e ${res.faturasCriadas} faturas criadas` : ""}.`,
+      );
       setLinhas([]);
       setNomeArquivo(null);
       setAberto(false);
@@ -190,7 +246,7 @@ export function ImportarClientesDialog({
         const processadas = raw
           .slice(1)
           .map((linha, idx) => validarLinha(linha, mapa, idx + 2))
-          .filter((l) => l.nome || l.telefone || l.email || l.documento || l.observacoes);
+          .filter((l) => l.nome || l.telefone || l.email || l.documento || l.observacoes || l.valorOriginal !== null);
 
         setLinhas(processadas);
       } catch (err) {
@@ -231,7 +287,7 @@ export function ImportarClientesDialog({
               <Download className="mr-2 size-4" />
               Baixar modelo
             </Button>
-            <p className="text-xs text-muted-foreground">Arquivos .xlsx ou .csv com as colunas Nome, Telefone, Email, CPF/CNPJ e Observações.</p>
+            <p className="text-xs text-muted-foreground">Arquivos .xlsx ou .csv com as colunas Nome, Telefone, Valor em aberto, Valor com desconto, Vencimento, Email, CPF/CNPJ e Observações.</p>
           </div>
 
           <div
@@ -299,8 +355,8 @@ export function ImportarClientesDialog({
                       <th className="px-3 py-2">Nome</th>
                       <th className="px-3 py-2">Telefone</th>
                       <th className="px-3 py-2">Email</th>
-                      <th className="px-3 py-2">Documento</th>
-                      <th className="px-3 py-2">Observações</th>
+                      <th className="px-3 py-2">Em aberto</th>
+                      <th className="px-3 py-2">Com desconto</th>
                       <th className="px-3 py-2">Status</th>
                     </tr>
                   </thead>
@@ -310,8 +366,12 @@ export function ImportarClientesDialog({
                         <td className="px-3 py-2">{l.nome}</td>
                         <td className="px-3 py-2">{formatarTelefone(l.telefone)}</td>
                         <td className="px-3 py-2">{l.email || "—"}</td>
-                        <td className="px-3 py-2">{l.documento || "—"}</td>
-                        <td className="px-3 py-2">{l.observacoes || "—"}</td>
+                        <td className="px-3 py-2">
+                          {l.valorOriginal !== null ? formatarMoeda(l.valorOriginal) : "—"}
+                        </td>
+                        <td className="px-3 py-2">
+                          {l.valorDesconto !== null ? formatarMoeda(l.valorDesconto) : "—"}
+                        </td>
                         <td className="px-3 py-2">
                           {l.erros.length > 0 ? (
                             <span className="text-xs text-destructive" title={l.erros.join(" ")}>
