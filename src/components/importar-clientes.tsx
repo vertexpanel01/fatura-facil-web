@@ -152,9 +152,9 @@ function validarLinha(
 
 export function gerarModeloPlanilha() {
   const dados = [
-    ["Nome", "Telefone", "Email", "CPF/CNPJ", "Valor em aberto", "Valor com desconto", "Vencimento", "Observacoes"],
-    ["Maria Silva", "11999999999", "maria@email.com", "12345678900", 1200.5, 499.9, "31/12/2026", "Cliente ativo"],
-    ["Joao Souza", "21988888888", "joao@email.com", "", 800, 350, "15/01/2027", ""],
+    ["telefone", "valor_em_aberto", "valor_com_desconto", "nome", "email", "cpf", "observacoes"],
+    ["11999999999", 1200.5, 499.9, "Maria Silva", "maria@email.com", "12345678900", "Cliente ativo"],
+    ["21988888888", 800, 350, "Joao Souza", "", "", ""],
   ];
   const ws = XLSX.utils.aoa_to_sheet(dados);
   const wb = XLSX.utils.book_new();
