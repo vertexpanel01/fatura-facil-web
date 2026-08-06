@@ -14,13 +14,10 @@ export function StatusBadge({ status }: { status: string }) {
   const estilos: Record<string, string> = {
     paga: "bg-success/12 text-success border-success/25",
     em_aberto: "bg-warning/15 text-warning-foreground border-warning/40",
+    em_processamento: "bg-warning/15 text-warning-foreground border-warning/40",
     vencida: "bg-destructive/10 text-destructive border-destructive/25",
-  };
-  const rotulos: Record<string, string> = {
-    paga: "Paga",
-    em_aberto: "Em aberto",
-    vencida: "Vencida",
-    cancelada: "Cancelada",
+    expirada: "bg-destructive/10 text-destructive border-destructive/25",
+    falhou: "bg-destructive/10 text-destructive border-destructive/25",
   };
   return (
     <span
@@ -28,10 +25,11 @@ export function StatusBadge({ status }: { status: string }) {
         estilos[status] ?? "bg-muted text-muted-foreground border-border"
       }`}
     >
-      {rotulos[status] ?? status}
+      {STATUS_FATURA[status] ?? status}
     </span>
   );
 }
+
 
 export function Campo({
   rotulo,
