@@ -37,8 +37,8 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 
     const { data: clientes, error: erroCliente } = await supabaseAdmin
       .from("clientes")
-      .select("id, nome, documento")
-      .eq("documento", data.cpf)
+      .select("id, nome, telefone")
+      .eq("telefone", data.telefone)
       .limit(1);
 
     if (erroCliente) throw new Error("Não foi possível consultar no momento.");
