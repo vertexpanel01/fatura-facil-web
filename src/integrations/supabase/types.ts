@@ -238,6 +238,7 @@ export type Database = {
       }
     }
     Functions: {
+      bootstrap_admin: { Args: { _user_id: string }; Returns: boolean }
       importar_faturas_lote: {
         Args: { p_registros: Json; p_vencimento: string }
         Returns: Json

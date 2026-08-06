@@ -37,15 +37,27 @@ function PaginaAuth() {
     });
   }, [navigate]);
 
+  async function promoverPrimeiroAdmin() {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) return;
+    try {
+      await supabase.rpc("bootstrap_admin", { _user_id: sessionData.session.user.id });
+    } catch {
+      // ignora se já existir admin; o redirecionamento fará a verificação de permissão
+    }
+  }
+
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
     setCarregando(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    setCarregando(false);
     if (error) {
+      setCarregando(false);
       toast.error("Não foi possível entrar", { description: "Verifique o e-mail e a senha." });
       return;
     }
+    await promoverPrimeiroAdmin();
+    setCarregando(false);
     navigate({ to: "/admin", replace: true });
   }
 
@@ -57,14 +69,17 @@ function PaginaAuth() {
       password: senha,
       options: { emailRedirectTo: window.location.origin, data: { nome } },
     });
-    setCarregando(false);
     if (error) {
+      setCarregando(false);
       toast.error("Não foi possível cadastrar", { description: error.message });
       return;
     }
     if (data.session) {
+      await promoverPrimeiroAdmin();
+      setCarregando(false);
       navigate({ to: "/admin", replace: true });
     } else {
+      setCarregando(false);
       toast.success("Cadastro criado", {
         description: "Confirme o e-mail enviado para ativar o acesso.",
       });
