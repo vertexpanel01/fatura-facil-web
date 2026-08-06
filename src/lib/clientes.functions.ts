@@ -15,7 +15,15 @@ const clienteImportSchema = z.object({
 
 const importarClientesSchema = z.object({
   clientes: z.array(clienteImportSchema).min(1).max(1000),
+  // Data de vencimento única escolhida no calendário: quando informada,
+  // vale para TODAS as faturas da importação.
+  vencimento_global: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
 });
+
 
 export const importarClientes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
