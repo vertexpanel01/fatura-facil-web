@@ -12,16 +12,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { importarClientes } from "@/lib/clientes.functions";
 import { somenteDigitos, formatarTelefone } from "@/lib/format";
 
 type LinhaPlanilha = {
   nome: string;
   telefone: string;
-  email?: string;
-  documento?: string;
-  observacoes?: string;
+  email: string | null;
+  documento: string | null;
+  observacoes: string | null;
   linha: number;
   erros: string[];
 };
@@ -69,11 +68,11 @@ function validarLinha(
   mapa: Record<string, number>,
   numeroLinha: number,
 ): LinhaPlanilha {
-  const nome = extrairValor(linha, mapa.nome);
-  const telefone = normalizarTelefone(extrairValor(linha, mapa.telefone));
-  const email = extrairValor(linha, mapa.email) || undefined;
-  const documento = extrairValor(linha, mapa.documento) || undefined;
-  const observacoes = extrairValor(linha, mapa.observacoes) || undefined;
+  const nome = extrairValor(linha, mapa["nome"]);
+  const telefone = normalizarTelefone(extrairValor(linha, mapa["telefone"]));
+  const email = extrairValor(linha, mapa["email"]) || null;
+  const documento = extrairValor(linha, mapa["documento"]) || null;
+  const observacoes = extrairValor(linha, mapa["observacoes"]) || null;
   const erros: string[] = [];
 
   if (!nome) erros.push("Nome é obrigatório.");
@@ -118,9 +117,9 @@ export function ImportarClientesDialog({
       const clientes = validas.map((l) => ({
         nome: l.nome,
         telefone: l.telefone,
-        email: l.email || null,
-        documento: l.documento || null,
-        observacoes: l.observacoes || null,
+        email: l.email,
+        documento: l.documento,
+        observacoes: l.observacoes,
       }));
       return importarClientes({ data: { clientes } });
     },
@@ -161,7 +160,7 @@ export function ImportarClientesDialog({
         const cabecalhos = raw[0].map((h) => String(h ?? ""));
         const mapa = mapearColunas(cabecalhos);
 
-        if (mapa.nome === undefined || mapa.telefone === undefined) {
+        if (mapa["nome"] === undefined || mapa["telefone"] === undefined) {
           toast.error("Colunas obrigatórias não encontradas: Nome e Telefone.");
           setLinhas([]);
           setCarregandoLeitura(false);
