@@ -154,18 +154,18 @@ function PaginaConsulta() {
               }}
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-primary-foreground underline underline-offset-4">
-                Consulta pelo telefone
+                Consulta pelo CPF
               </p>
-              <label htmlFor="telefone" className="sr-only">
-                Digite seu telefone
+              <label htmlFor="cpf" className="sr-only">
+                Digite seu CPF
               </label>
               <Input
-                id="telefone"
+                id="cpf"
                 inputMode="numeric"
-                autoComplete="tel"
-                placeholder="Digite seu telefone com DDD"
-                value={telefone}
-                onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+                autoComplete="off"
+                placeholder="Digite seu CPF"
+                value={cpf}
+                onChange={(e) => setCpf(formatarCpf(e.target.value))}
                 className="mt-4 h-14 rounded-full border-0 bg-card px-6 text-base shadow-card"
               />
 
@@ -192,7 +192,7 @@ function PaginaConsulta() {
               </Button>
               <p className="mt-3 flex items-center gap-2 text-xs text-primary-foreground/85">
                 <ShieldCheck className="size-4" />
-                Mostramos apenas os dados vinculados ao telefone informado.
+                Mostramos apenas os dados vinculados ao CPF informado.
               </p>
             </form>
           </div>
