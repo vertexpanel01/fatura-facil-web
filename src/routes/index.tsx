@@ -83,21 +83,21 @@ const duvidas = [
 
 
 function PaginaConsulta() {
-  const [telefone, setTelefone] = useState("");
+  const [cpf, setCpf] = useState("");
   const [aceite, setAceite] = useState(false);
   const navigate = useNavigate();
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const digitos = somenteDigitos(telefone);
-      if (digitos.length < 10 || digitos.length > 11) throw new Error("Telefone inválido");
-      await navigate({ to: "/fatura/$telefone", params: { telefone: digitos } });
+      const digitos = somenteDigitos(cpf);
+      if (digitos.length !== 11) throw new Error("CPF inválido");
+      await navigate({ to: "/fatura/$cpf", params: { cpf: digitos } });
     },
-    onError: () => toast.error("Informe um telefone válido com DDD."),
+    onError: () => toast.error("Informe um CPF válido."),
   });
 
-  const digitos = somenteDigitos(telefone);
-  const podeConsultar = digitos.length >= 10 && aceite && !mutation.isPending;
+  const digitos = somenteDigitos(cpf);
+  const podeConsultar = digitos.length === 11 && aceite && !mutation.isPending;
 
   return (
     <div className="min-h-screen bg-background">
