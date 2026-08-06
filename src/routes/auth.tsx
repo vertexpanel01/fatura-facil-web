@@ -31,9 +31,21 @@ function PaginaAuth() {
   const [nome, setNome] = useState("");
   const [carregando, setCarregando] = useState(false);
 
+  async function ehAdmin(userId: string) {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    return Boolean(data);
+  }
+
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/admin", replace: true });
+    void supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user && (await ehAdmin(data.user.id))) {
+        navigate({ to: "/admin", replace: true });
+      }
     });
   }, [navigate]);
 
@@ -47,19 +59,32 @@ function PaginaAuth() {
     }
   }
 
+  async function concluirAcesso(userId: string) {
+    if (await ehAdmin(userId)) {
+      setCarregando(false);
+      navigate({ to: "/admin", replace: true });
+      return;
+    }
+    await supabase.auth.signOut();
+    setCarregando(false);
+    toast.error("Acesso restrito", {
+      description: "Esta conta não tem permissão de administrador.",
+    });
+  }
+
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
     setCarregando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if (error) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    if (error || !data.user) {
       setCarregando(false);
       toast.error("Não foi possível entrar", { description: "Verifique o e-mail e a senha." });
       return;
     }
     await promoverPrimeiroAdmin();
-    setCarregando(false);
-    navigate({ to: "/admin", replace: true });
+    await concluirAcesso(data.user.id);
   }
+
 
   async function cadastrar(e: React.FormEvent) {
     e.preventDefault();
