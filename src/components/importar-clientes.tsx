@@ -624,13 +624,17 @@ export function ImportarClientesDialog({
                         <td className="px-3 py-2">
                           {l.erros.length > 0 ? (
                             <span className="text-xs text-destructive" title={l.erros.join(" ")}>
-                              {l.erros[0]}
-                              {l.erros.length > 1 && ` (+${l.erros.length - 1})`}
+                              {l.erros.join(" ")}
+                            </span>
+                          ) : l.avisos.length > 0 ? (
+                            <span className="text-xs text-amber-600" title={l.avisos.join(" ")}>
+                              {l.avisos.join(" ")}
                             </span>
                           ) : (
                             <CheckCircle2 className="size-4 text-green-600" />
                           )}
                         </td>
+
                       </tr>
                     ))}
                   </tbody>
