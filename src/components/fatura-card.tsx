@@ -8,7 +8,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
 import type { FaturaPublica } from "@/lib/consulta.functions";
-import { formatarData, formatarMoeda, formatarTelefone } from "@/lib/format";
+import {
+  formatarData,
+  formatarMoeda,
+  formatarTelefone,
+  MENSAGEM_STATUS,
+  STATUS_FATURA,
+  STATUS_PAGAVEIS,
+} from "@/lib/format";
+
 
 export function StatusBadge({ status }: { status: string }) {
   const estilos: Record<string, string> = {
