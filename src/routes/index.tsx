@@ -45,9 +45,9 @@ export const Route = createFileRoute("/")({
 });
 
 const beneficios = [
-  { icone: Wifi, titulo: "Negociação 100% Online" },
+  { icone: Wifi, titulo: "Aproveite descontos imperdíveis 100% online" },
   { icone: Gavel, titulo: "Acordo sem burocracia" },
-  { icone: Globe2, titulo: "Negocie onde e quando quiser" },
+  { icone: Globe2, titulo: "Aproveite descontos imperdíveis onde e quando quiser" },
   { icone: Fingerprint, titulo: "Quitação ágil e segura" },
 ] as const;
 
