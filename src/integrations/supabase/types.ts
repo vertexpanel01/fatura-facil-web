@@ -275,7 +275,6 @@ export type Database = {
         Args: { p_actor: string; p_registros: Json; p_vencimento: string }
         Returns: Json
       }
-      metricas_acessos: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"
