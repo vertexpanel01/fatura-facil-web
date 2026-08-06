@@ -125,8 +125,8 @@ function validarLinha(
   const vencimento = parseData(extrairValor(linha, mapa["vencimento"]));
   const erros: string[] = [];
 
-  if (!nome) erros.push("Nome é obrigatório.");
   if (telefone.length < 10 || telefone.length > 11) erros.push("Telefone inválido (informe DDD + número).");
+
 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     erros.push("E-mail inválido.");
