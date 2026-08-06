@@ -174,7 +174,7 @@ export function CardFatura({
         <Campo rotulo="Valor original" valor={formatarMoeda(fatura.valor_original)} riscado />
         <Campo rotulo="Valor com desconto à vista" valor={formatarMoeda(valorPagar)} destaque />
         <Campo rotulo="Vencimento" valor={formatarData(fatura.vencimento)} />
-        <Campo rotulo="Telefone" valor={formatarTelefone(telefone)} />
+        <Campo rotulo="CPF" valor={formatarCpf(documento)} />
       </dl>
 
       <div className="space-y-5 px-5 py-6">
