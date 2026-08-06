@@ -59,7 +59,30 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 
     if (erroCliente) throw new Error("Não foi possível consultar no momento.");
     const cliente = clientes?.[0];
-    if (!cliente) return { encontrado: false };
+
+    // Registro de acesso (silencioso, invisível para o visitante).
+    const registrar = async (
+      sucesso: boolean,
+      valorOriginal: number | null,
+      valorDesconto: number | null,
+    ) => {
+      try {
+        await supabaseAdmin.from("acessos").insert({
+          pagina: "/fatura",
+          telefone_consultado: t,
+          sucesso,
+          valor_original: valorOriginal,
+          valor_desconto: valorDesconto,
+        });
+      } catch {
+        /* nunca interrompe a consulta do cliente */
+      }
+    };
+
+    if (!cliente) {
+      await registrar(false, null, null);
+      return { encontrado: false };
+    }
 
     // Apenas a fatura pendente do mês corrente — faturas pagas/canceladas
     // e de outros meses não são exibidas na consulta pública.
@@ -83,6 +106,12 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 
     if (erroFaturas) throw new Error("Não foi possível consultar no momento.");
 
+    const primeira = faturas?.[0];
+    await registrar(
+      Boolean(primeira),
+      primeira ? Number(primeira.valor_original) : null,
+      primeira ? Number(primeira.valor_desconto) || Number(primeira.valor_original) : null,
+    );
 
     return {
       encontrado: true,
