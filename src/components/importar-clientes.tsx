@@ -49,6 +49,7 @@ type LinhaPlanilha = {
   status: string | null;
   linha: number;
   erros: string[];
+  avisos: string[];
 };
 
 const CAMPOS: { campo: Campo; rotulo: string; obrigatorio: boolean; chaves: string[] }[] = [
@@ -56,21 +57,21 @@ const CAMPOS: { campo: Campo; rotulo: string; obrigatorio: boolean; chaves: stri
     campo: "telefone",
     rotulo: "Telefone",
     obrigatorio: true,
-    chaves: ["telefone", "tel", "celular", "phone", "whatsapp"],
+    chaves: ["telefone", "tel", "celular", "phone", "whatsapp", "fone", "numero", "num"],
   },
-  { campo: "nome", rotulo: "Nome", obrigatorio: true, chaves: ["nome", "name", "cliente"] },
+  { campo: "nome", rotulo: "Nome", obrigatorio: false, chaves: ["nome", "name", "cliente"] },
   { campo: "email", rotulo: "E-mail", obrigatorio: false, chaves: ["email", "email", "mail"] },
   {
     campo: "valorOriginal",
     rotulo: "Valor em Aberto",
     obrigatorio: true,
-    chaves: ["valororiginal", "valoremaberto", "valor", "valoraberto", "valordafatura", "valorfatura"],
+    chaves: ["valororiginal", "valoremaberto", "valor", "valoraberto", "valordafatura", "valorfatura", "divida", "saldo"],
   },
   {
     campo: "valorDesconto",
     rotulo: "Valor com Desconto",
     obrigatorio: true,
-    chaves: ["valorcomdesconto", "valordesconto", "desconto", "valorpromocional"],
+    chaves: ["valorcomdesconto", "valordesconto", "desconto", "valorpromocional", "valoravista"],
   },
   { campo: "status", rotulo: "Status", obrigatorio: false, chaves: ["status", "situacao"] },
 ];
