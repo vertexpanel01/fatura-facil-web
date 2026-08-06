@@ -52,9 +52,9 @@ const beneficios = [
 ] as const;
 
 const passos = [
-  { icone: IdCard, texto: "Informe o seu número de telefone com DDD" },
+  { icone: IdCard, texto: "Informe o seu CPF" },
   { icone: ReceiptText, texto: "Consulte os detalhes da sua fatura em aberto" },
-  { icone: Handshake, texto: "Veja o valor com desconto disponível para você" },
+  { icone: Handshake, texto: "Aproveite descontos imperdíveis disponíveis para você" },
   { icone: Barcode, texto: "Escolha pagar na hora com PIX" },
 ] as const;
 
