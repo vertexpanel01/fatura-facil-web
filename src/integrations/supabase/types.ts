@@ -49,8 +49,11 @@ export type Database = {
       }
       faturas: {
         Row: {
+          boleto_codigo: string | null
+          boleto_url: string | null
           cliente_id: string
           created_at: string
+          data_pagamento: string | null
           descricao: string
           id: string
           pix_copia_cola: string | null
@@ -63,8 +66,11 @@ export type Database = {
           vencimento: string
         }
         Insert: {
+          boleto_codigo?: string | null
+          boleto_url?: string | null
           cliente_id: string
           created_at?: string
+          data_pagamento?: string | null
           descricao?: string
           id?: string
           pix_copia_cola?: string | null
@@ -77,8 +83,11 @@ export type Database = {
           vencimento: string
         }
         Update: {
+          boleto_codigo?: string | null
+          boleto_url?: string | null
           cliente_id?: string
           created_at?: string
+          data_pagamento?: string | null
           descricao?: string
           id?: string
           pix_copia_cola?: string | null
@@ -155,6 +164,13 @@ export type Database = {
             referencedRelation: "faturas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pagamentos_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas_por_telefone"
+            referencedColumns: ["fatura_id"]
+          },
         ]
       }
       profiles: {
@@ -206,6 +222,14 @@ export type Database = {
     Views: {
       faturas_por_telefone: {
         Row: {
+          boleto_codigo: string | null
+          boleto_url: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          fatura_id: string | null
+          nome: string | null
+          pix_copia_e_cola: string | null
+          status: string | null
           telefone: string | null
           valor_com_desconto: number | null
           valor_em_aberto: number | null
