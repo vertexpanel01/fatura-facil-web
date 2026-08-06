@@ -1,10 +1,22 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2, X } from "lucide-react";
+import {
+  Upload,
+  Download,
+  FileSpreadsheet,
+  AlertCircle,
+  CheckCircle2,
+  X,
+  CalendarIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +26,8 @@ import {
 } from "@/components/ui/dialog";
 import { importarClientes } from "@/lib/clientes.functions";
 import { somenteDigitos, formatarTelefone, formatarMoeda } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
 
 type LinhaPlanilha = {
   nome: string;
