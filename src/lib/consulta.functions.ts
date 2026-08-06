@@ -1,11 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+/** Normaliza para o padrão gravado no banco: DDD + número (10 ou 11 dígitos). */
+function normalizarTelefone(valor: string): string {
+  let d = valor.replace(/\D/g, "");
+  if ((d.length === 12 || d.length === 13) && d.startsWith("55")) d = d.slice(2);
+  while (d.length > 11 && d.startsWith("0")) d = d.slice(1);
+  if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
+  return d;
+}
+
 const consultaSchema = z.object({
   telefone: z
     .string()
-    .transform((v) => v.replace(/\D/g, ""))
-    .refine((v) => v.length === 11, {
+    .transform(normalizarTelefone)
+    .refine((v) => v.length === 10 || v.length === 11, {
       message: "Informe um telefone válido.",
     }),
 });
