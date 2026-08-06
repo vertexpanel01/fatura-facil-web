@@ -87,6 +87,7 @@ const SEM_COLUNA = "__nenhuma__";
 function parseMoeda(valor: string): number | null {
   if (!valor.trim()) return null;
   let limpo = valor.replace(/[^\d,.-]/g, "");
+  if (!/\d/.test(limpo)) return null;
   const temVirgula = limpo.includes(",");
   const temPonto = limpo.includes(".");
   if (temVirgula && temPonto) {
