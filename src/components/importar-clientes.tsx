@@ -173,6 +173,7 @@ export function ImportarClientesDialog({
   const [linhas, setLinhas] = useState<LinhaPlanilha[]>([]);
   const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
   const [carregandoLeitura, setCarregandoLeitura] = useState(false);
+  const [vencimentoGlobal, setVencimentoGlobal] = useState<Date | undefined>();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const importar = useMutation({
