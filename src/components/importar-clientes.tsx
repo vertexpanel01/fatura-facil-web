@@ -125,8 +125,8 @@ function validarLinha(
   const vencimento = parseData(extrairValor(linha, mapa["vencimento"]));
   const erros: string[] = [];
 
-  if (!nome) erros.push("Nome é obrigatório.");
   if (telefone.length < 10 || telefone.length > 11) erros.push("Telefone inválido (informe DDD + número).");
+
 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     erros.push("E-mail inválido.");
@@ -152,9 +152,9 @@ function validarLinha(
 
 export function gerarModeloPlanilha() {
   const dados = [
-    ["Nome", "Telefone", "Email", "CPF/CNPJ", "Valor em aberto", "Valor com desconto", "Vencimento", "Observacoes"],
-    ["Maria Silva", "11999999999", "maria@email.com", "12345678900", 1200.5, 499.9, "31/12/2026", "Cliente ativo"],
-    ["Joao Souza", "21988888888", "joao@email.com", "", 800, 350, "15/01/2027", ""],
+    ["telefone", "valor_em_aberto", "valor_com_desconto", "nome", "email", "cpf", "observacoes"],
+    ["11999999999", 1200.5, 499.9, "Maria Silva", "maria@email.com", "12345678900", "Cliente ativo"],
+    ["21988888888", 800, 350, "Joao Souza", "", "", ""],
   ];
   const ws = XLSX.utils.aoa_to_sheet(dados);
   const wb = XLSX.utils.book_new();
@@ -174,6 +174,7 @@ export function ImportarClientesDialog({
   const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
   const [carregandoLeitura, setCarregandoLeitura] = useState(false);
   const [vencimentoGlobal, setVencimentoGlobal] = useState<Date | undefined>();
+  const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const importar = useMutation({
@@ -181,19 +182,35 @@ export function ImportarClientesDialog({
       const validas = linhas.filter((l) => l.erros.length === 0);
       if (!validas.length) throw new Error("Nenhuma linha válida para importar.");
       if (!vencimentoGlobal) throw new Error("Escolha a data de vencimento das faturas.");
-      const clientes = validas.map((l) => ({
-        nome: l.nome,
-        telefone: l.telefone,
-        email: l.email,
-        documento: l.documento,
-        observacoes: l.observacoes,
-        valor_original: l.valorOriginal,
-        valor_desconto: l.valorDesconto,
-        vencimento: l.vencimento,
-      }));
-      return importarClientes({
-        data: { clientes, vencimento_global: format(vencimentoGlobal, "yyyy-MM-dd") },
-      });
+
+      const vencimento = format(vencimentoGlobal, "yyyy-MM-dd");
+      const TAMANHO_LOTE = 500;
+      const totais = { importados: 0, faturasCriadas: 0, faturasAtualizadas: 0 };
+
+      setProgresso({ feitos: 0, total: validas.length });
+
+      for (let i = 0; i < validas.length; i += TAMANHO_LOTE) {
+        const lote = validas.slice(i, i + TAMANHO_LOTE).map((l) => ({
+          nome: l.nome || null,
+          telefone: l.telefone,
+          email: l.email,
+          documento: l.documento,
+          observacoes: l.observacoes,
+          valor_original: l.valorOriginal,
+          valor_desconto: l.valorDesconto,
+        }));
+
+        const res = await importarClientes({
+          data: { clientes: lote, vencimento_global: vencimento },
+        });
+
+        totais.importados += res.importados;
+        totais.faturasCriadas += res.faturasCriadas;
+        totais.faturasAtualizadas += res.faturasAtualizadas;
+        setProgresso({ feitos: Math.min(i + TAMANHO_LOTE, validas.length), total: validas.length });
+      }
+
+      return totais;
     },
     onSuccess: (res) => {
       const partes = [`${res.importados} clientes importados`];
@@ -202,11 +219,16 @@ export function ImportarClientesDialog({
       toast.success(`${partes.join(" · ")}.`);
       setLinhas([]);
       setNomeArquivo(null);
+      setProgresso(null);
       setAberto(false);
       onSuccess();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setProgresso(null);
+      toast.error(e.message);
+    },
   });
+
 
   function processarArquivo(file: File) {
     setCarregandoLeitura(true);
@@ -255,12 +277,13 @@ export function ImportarClientesDialog({
         const cabecalhos = firstRow.map((h) => String(h ?? ""));
         const mapa = mapearColunas(cabecalhos);
 
-        if (mapa["nome"] === undefined || mapa["telefone"] === undefined) {
-          toast.error("Colunas obrigatórias não encontradas: Nome e Telefone.");
+        if (mapa["telefone"] === undefined) {
+          toast.error("Coluna obrigatória não encontrada: telefone.");
           setLinhas([]);
           setCarregandoLeitura(false);
           return;
         }
+
 
         const processadas = raw
           .slice(1)
@@ -306,7 +329,7 @@ export function ImportarClientesDialog({
               <Download className="mr-2 size-4" />
               Baixar modelo
             </Button>
-            <p className="text-xs text-muted-foreground">Arquivos .xlsx ou .csv com as colunas Nome, Telefone, Valor em aberto, Valor com desconto, Vencimento, Email, CPF/CNPJ e Observações.</p>
+            <p className="text-xs text-muted-foreground">Arquivos .xlsx, .xls ou .csv. Colunas reconhecidas automaticamente: <strong>telefone</strong>, <strong>valor_em_aberto</strong> e <strong>valor_com_desconto</strong> (nome, e-mail, CPF/CNPJ e observações são opcionais).</p>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-4">
@@ -361,7 +384,7 @@ export function ImportarClientesDialog({
             <input
               ref={inputRef}
               type="file"
-              accept=".xlsx,.csv"
+              accept=".xlsx,.xls,.csv"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -452,12 +475,27 @@ export function ImportarClientesDialog({
                   Escolha a data de vencimento acima para liberar a importação.
                 </p>
               )}
+              {progresso && (
+                <div className="space-y-1">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${Math.round((progresso.feitos / progresso.total) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {progresso.feitos.toLocaleString("pt-BR")} de {progresso.total.toLocaleString("pt-BR")} importados
+                  </p>
+                </div>
+              )}
               <Button
                 className="w-full"
                 disabled={!validas.length || !vencimentoGlobal || importar.isPending}
                 onClick={() => importar.mutate()}
               >
-                {importar.isPending ? "Importando..." : `Importar ${validas.length} clientes`}
+                {importar.isPending
+                  ? "Importando..."
+                  : `Importar ${validas.length.toLocaleString("pt-BR")} clientes`}
               </Button>
             </div>
           )}

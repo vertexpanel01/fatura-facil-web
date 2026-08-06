@@ -238,7 +238,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      importar_faturas_lote: {
+        Args: { p_registros: Json; p_vencimento: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "user"

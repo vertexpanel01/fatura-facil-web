@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, FileText, LogOut, Receipt, Users } from "lucide-react";
+import { BarChart3, FileText, LogOut, Receipt } from "lucide-react";
 
 import logo from "@/assets/logo-claro.png";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 const itens = [
   { to: "/admin", label: "Dashboard", icon: BarChart3, exact: true },
-  { to: "/admin/clientes", label: "Clientes", icon: Users, exact: false },
-  { to: "/admin/faturas", label: "Faturas", icon: FileText, exact: false },
+  { to: "/admin/faturas", label: "Clientes e Faturas", icon: FileText, exact: false },
   { to: "/admin/pagamentos", label: "Pagamentos", icon: Receipt, exact: false },
 ] as const;
 
