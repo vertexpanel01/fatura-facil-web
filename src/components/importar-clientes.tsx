@@ -142,7 +142,14 @@ export function ImportarClientesDialog({
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          toast.error("Nenhuma aba encontrada na planilha.");
+          setLinhas([]);
+          setCarregandoLeitura(false);
+          return;
+        }
+        const sheet = workbook.Sheets[firstSheetName];
         const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false }) as (
           | string
           | number
@@ -157,7 +164,14 @@ export function ImportarClientesDialog({
           return;
         }
 
-        const cabecalhos = raw[0].map((h) => String(h ?? ""));
+        const firstRow = raw[0];
+        if (!firstRow) {
+          toast.error("Cabeçalho da planilha está vazio.");
+          setLinhas([]);
+          setCarregandoLeitura(false);
+          return;
+        }
+        const cabecalhos = firstRow.map((h) => String(h ?? ""));
         const mapa = mapearColunas(cabecalhos);
 
         if (mapa["nome"] === undefined || mapa["telefone"] === undefined) {
