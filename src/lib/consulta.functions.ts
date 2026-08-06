@@ -56,7 +56,7 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 
     return {
       encontrado: true,
-      cliente: { nome: cliente.nome, documento: cliente.documento ?? "" },
+      cliente: { nome: cliente.nome, telefone: cliente.telefone ?? "" },
       faturas: (faturas ?? []).map((f) => ({
         id: f.id,
         descricao: f.descricao,
