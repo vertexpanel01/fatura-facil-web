@@ -314,8 +314,9 @@ export function ImportarClientesDialog({
       if (!vencimentoGlobal) throw new Error("Escolha a data de vencimento das faturas.");
 
       const vencimento = format(vencimentoGlobal, "yyyy-MM-dd");
-      const TAMANHO_LOTE = 500;
+      const TAMANHO_LOTE = 200;
       const totais = { importados: 0, faturasCriadas: 0, faturasAtualizadas: 0, rejeitados: 0 };
+      const falhas: { lote: number; de: number; ate: number; motivo: string }[] = [];
 
       setProgresso({ feitos: 0, total: validas.length });
 
@@ -329,35 +330,66 @@ export function ImportarClientesDialog({
           status: l.status,
         }));
 
-        try {
-          const res = await importarClientes({
-            data: { clientes: lote, vencimento_global: vencimento },
-          });
+        let ultimoErro = "";
+        let ok = false;
 
-          totais.importados += res.importados;
-          totais.faturasCriadas += res.faturasCriadas;
-          totais.faturasAtualizadas += res.faturasAtualizadas;
-          totais.rejeitados += res.rejeitados?.length ?? 0;
-        } catch (erro) {
-          const msg = erro instanceof Error ? erro.message : "Falha desconhecida";
-          throw new Error(
-            `Falha no lote ${Math.floor(i / TAMANHO_LOTE) + 1} (linhas ${i + 1}–${Math.min(i + TAMANHO_LOTE, validas.length)}): ${msg}`,
-          );
+        // Até 3 tentativas por lote: falhas de rede/tempo limite são temporárias.
+        for (let tentativa = 1; tentativa <= 3 && !ok; tentativa++) {
+          try {
+            const res = await importarClientes({
+              data: { clientes: lote, vencimento_global: vencimento },
+            });
+            totais.importados += res.importados;
+            totais.faturasCriadas += res.faturasCriadas;
+            totais.faturasAtualizadas += res.faturasAtualizadas;
+            totais.rejeitados += res.rejeitados?.length ?? 0;
+            ok = true;
+          } catch (erro) {
+            ultimoErro = erro instanceof Error ? erro.message : "Falha desconhecida";
+            if (tentativa < 3) await new Promise((r) => setTimeout(r, 800 * tentativa));
+          }
+        }
+
+        if (!ok) {
+          falhas.push({
+            lote: Math.floor(i / TAMANHO_LOTE) + 1,
+            de: i + 1,
+            ate: Math.min(i + TAMANHO_LOTE, validas.length),
+            motivo: ultimoErro,
+          });
         }
 
         setProgresso({ feitos: Math.min(i + TAMANHO_LOTE, validas.length), total: validas.length });
+        // Pequena pausa entre lotes para não sobrecarregar o servidor.
+        await new Promise((r) => setTimeout(r, 60));
       }
 
-      return totais;
+      return { ...totais, falhas };
     },
     onSuccess: (res) => {
       const partes = [`${res.importados} clientes importados`];
       if (res.faturasCriadas) partes.push(`${res.faturasCriadas} faturas criadas`);
       if (res.faturasAtualizadas) partes.push(`${res.faturasAtualizadas} faturas atualizadas`);
       if (res.rejeitados) partes.push(`${res.rejeitados} linhas rejeitadas`);
+
+      setProgresso(null);
+
+      if (res.falhas.length) {
+        const primeira = res.falhas[0];
+        toast.warning(`${partes.join(" · ")}.`, {
+          description: `${res.falhas.length} lote(s) falharam (ex.: linhas ${primeira?.de}–${primeira?.ate}: ${primeira?.motivo}). Baixe o relatório e reimporte apenas essas linhas.`,
+          duration: 15000,
+          action: {
+            label: "Baixar relatório",
+            onClick: () => baixarRelatorioFalhas(res.falhas),
+          },
+        });
+        onSuccess();
+        return;
+      }
+
       toast.success(`${partes.join(" · ")}.`);
       limpar();
-      setProgresso(null);
       setAberto(false);
       onSuccess();
     },
@@ -366,6 +398,20 @@ export function ImportarClientesDialog({
       toast.error("Erro na importação", { description: e.message, duration: 12000 });
     },
   });
+
+  function baixarRelatorioFalhas(
+    falhas: { lote: number; de: number; ate: number; motivo: string }[],
+  ) {
+    const dados = [
+      ["lote", "linha_inicial", "linha_final", "motivo"],
+      ...falhas.map((f) => [f.lote, f.de, f.ate, f.motivo]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Lotes com falha");
+    XLSX.writeFile(wb, "lotes-com-falha.xlsx");
+  }
+
 
   function processarArquivo(file: File) {
     setCarregandoLeitura(true);
