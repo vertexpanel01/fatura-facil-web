@@ -27,7 +27,7 @@ export type ConsultaResultado = {
 };
 
 /**
- * Consulta pública por CPF. Roda apenas no servidor e devolve
+ * Consulta pública por telefone. Roda apenas no servidor e devolve
  * somente os campos necessários — nenhuma tabela é exposta ao público.
  */
 export const consultarFaturas = createServerFn({ method: "POST" })
