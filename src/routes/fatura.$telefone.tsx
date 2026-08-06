@@ -6,22 +6,22 @@ import { CardFatura } from "@/components/fatura-card";
 import { Button } from "@/components/ui/button";
 import { consultarFaturas } from "@/lib/consulta.functions";
 import type { FaturaPublica } from "@/lib/consulta.functions";
-import { formatarCpf } from "@/lib/format";
+import { formatarTelefone } from "@/lib/format";
 
 export const Route = createFileRoute("/fatura/$telefone")({
-  loader: ({ params }) => consultarFaturas({ data: { cpf: params.cpf } }),
+  loader: ({ params }) => consultarFaturas({ data: { telefone: params.telefone } }),
   head: () => ({
     meta: [
       { title: "Sua fatura — Fatura Móvel" },
       {
         name: "description",
         content:
-          "Veja os detalhes da sua fatura: nome do cliente, CPF, valor total, valor com desconto à vista, vencimento e status.",
+          "Veja os detalhes da sua fatura: nome do cliente, telefone, valor total, valor com desconto à vista, vencimento e status.",
       },
       { property: "og:title", content: "Sua fatura — Fatura Móvel" },
       {
         property: "og:description",
-        content: "Detalhes da fatura consultada pelo CPF, com valor com desconto e opção de pagar agora.",
+        content: "Detalhes da fatura consultada pelo telefone, com valor com desconto e opção de pagar agora.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -30,11 +30,11 @@ export const Route = createFileRoute("/fatura/$telefone")({
   errorComponent: () => (
     <Aviso
       titulo="Não foi possível consultar"
-      texto="Verifique o CPF informado e tente novamente em instantes."
+      texto="Verifique o telefone informado e tente novamente em instantes."
     />
   ),
   notFoundComponent: () => (
-    <Aviso titulo="CPF não localizado" texto="Confira o número digitado ou fale com o atendimento." />
+    <Aviso titulo="Telefone não localizado" texto="Confira o número digitado ou fale com o atendimento." />
   ),
   component: PaginaFatura,
 });
@@ -73,7 +73,7 @@ function Aviso({ titulo, texto }: { titulo: string; texto: string }) {
         <h1 className="mt-4 text-xl font-bold text-foreground">{titulo}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{texto}</p>
         <Button asChild className="mt-6 rounded-full bg-cta text-cta-foreground hover:bg-cta/90">
-          <Link to="/">Consultar outro CPF</Link>
+          <Link to="/">Consultar outro telefone</Link>
         </Button>
       </section>
     </div>
@@ -82,13 +82,13 @@ function Aviso({ titulo, texto }: { titulo: string; texto: string }) {
 
 function PaginaFatura() {
   const resultado = Route.useLoaderData();
-  const { cpf } = Route.useParams();
+  const { telefone } = Route.useParams();
 
   if (!resultado.encontrado || !resultado.cliente) {
     return (
       <Aviso
-        titulo="CPF não localizado"
-        texto={`Não encontramos cadastro para ${formatarCpf(cpf)}. Confira o número digitado ou fale com o atendimento.`}
+        titulo="Telefone não localizado"
+        texto={`Não encontramos cadastro para ${formatarTelefone(telefone)}. Confira o número digitado ou fale com o atendimento.`}
       />
     );
   }
@@ -104,7 +104,7 @@ function PaginaFatura() {
           <p className="text-xs font-semibold uppercase tracking-wide opacity-90">Resultado da consulta</p>
           <h1 className="mt-2 text-2xl font-extrabold sm:text-3xl">Olá, {resultado.cliente.nome}!</h1>
           <p className="mt-2 text-sm opacity-90">
-            CPF consultado: {formatarCpf(resultado.cliente.documento)}
+            Telefone consultado: {formatarTelefone(resultado.cliente.telefone)}
           </p>
         </div>
       </section>
@@ -120,29 +120,29 @@ function PaginaFatura() {
               key={f.id}
               fatura={f}
               nome={resultado.cliente!.nome}
-              documento={resultado.cliente!.documento}
+              telefone={resultado.cliente!.telefone}
             />
           ))
         ) : (
           <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-card">
             <SearchX className="mx-auto size-9 text-primary" />
             <p className="mt-4 text-base font-bold text-foreground">
-              Não há faturas para {formatarCpf(resultado.cliente.documento)}
+              Não há faturas para {formatarTelefone(resultado.cliente.telefone)}
             </p>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
               Seu cadastro está em dia: nenhuma fatura em aberto, vencida ou pendente de pagamento foi
-              localizada para este CPF. Se você esperava encontrar uma fatura, confira o número
+              localizada para este telefone. Se você esperava encontrar uma fatura, confira o número
               digitado ou fale com o atendimento.
             </p>
             <Button asChild className="mt-6 rounded-full bg-cta text-cta-foreground hover:bg-cta/90">
-              <Link to="/">Consultar outro CPF</Link>
+              <Link to="/">Consultar outro telefone</Link>
             </Button>
           </div>
         )}
 
         <p className="flex items-center gap-2 pt-4 text-xs text-muted-foreground">
           <ShieldCheck className="size-4" />
-          Exibimos somente os dados vinculados ao CPF informado.
+          Exibimos somente os dados vinculados ao telefone informado.
         </p>
       </main>
     </div>
