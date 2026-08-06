@@ -151,8 +151,14 @@ function extrairValor(linha: CelulaBruta[], idx: number | null): string {
 }
 
 function normalizarTelefone(valor: string): string {
-  const digitos = somenteDigitos(String(valor));
-  if (digitos.length === 13 && digitos.startsWith("55")) return digitos.slice(2);
+  let digitos = somenteDigitos(String(valor));
+  // Remove código do país (+55) quando presente.
+  if ((digitos.length === 12 || digitos.length === 13) && digitos.startsWith("55")) {
+    digitos = digitos.slice(2);
+  }
+  // Remove zero de operadora/DDD à esquerda.
+  while (digitos.length > 11 && digitos.startsWith("0")) digitos = digitos.slice(1);
+  if (digitos.length === 11 && digitos.startsWith("0")) digitos = digitos.slice(1);
   return digitos;
 }
 
@@ -162,36 +168,51 @@ function validarLinha(
   numeroLinha: number,
 ): LinhaPlanilha {
   const nome = extrairValor(linha, mapa.nome);
-  const telefone = normalizarTelefone(extrairValor(linha, mapa.telefone));
+  const telefoneBruto = extrairValor(linha, mapa.telefone);
+  const telefone = normalizarTelefone(telefoneBruto);
   const email = extrairValor(linha, mapa.email) || null;
-  const valorOriginal = parseMoeda(extrairValor(linha, mapa.valorOriginal));
-  const valorDesconto = parseMoeda(extrairValor(linha, mapa.valorDesconto));
+  const brutoOriginal = extrairValor(linha, mapa.valorOriginal);
+  const brutoDesconto = extrairValor(linha, mapa.valorDesconto);
+  const parsedOriginal = parseMoeda(brutoOriginal);
+  const parsedDesconto = parseMoeda(brutoDesconto);
   const statusBruto = extrairValor(linha, mapa.status);
   const status = parseStatus(statusBruto);
   const erros: string[] = [];
+  const avisos: string[] = [];
 
-  if (telefone.length < 10 || telefone.length > 11) erros.push("Telefone inválido (informe DDD + número).");
-  if (!nome) erros.push("Nome não informado.");
-  if (valorOriginal === null) erros.push("Valor em aberto inválido.");
-  if (valorDesconto === null) erros.push("Valor com desconto inválido.");
-
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    erros.push("E-mail inválido.");
+  if (!telefoneBruto) {
+    erros.push("Telefone não informado.");
+  } else if (telefone.length < 10 || telefone.length > 11) {
+    erros.push(`Telefone inválido ("${telefoneBruto}") — informe DDD + número.`);
   }
 
-  if (valorDesconto !== null && valorOriginal !== null && valorDesconto > valorOriginal) {
-    erros.push("Valor com desconto maior que o valor em aberto.");
+  if (brutoOriginal && parsedOriginal === null) erros.push(`Valor em aberto inválido ("${brutoOriginal}").`);
+  if (brutoDesconto && parsedDesconto === null) erros.push(`Valor com desconto inválido ("${brutoDesconto}").`);
+
+  const valorOriginal = parsedOriginal ?? 0;
+  const valorDesconto = parsedDesconto ?? 0;
+
+  if (!nome) avisos.push("Sem nome — será usado o telefone.");
+  if (!brutoOriginal) avisos.push("Valor em aberto vazio — considerado R$ 0,00.");
+  if (!brutoDesconto) avisos.push("Valor com desconto vazio — considerado R$ 0,00.");
+  if (valorOriginal === 0 && valorDesconto === 0) avisos.push("Fatura será criada com valor zero.");
+  if (statusBruto && !status) avisos.push(`Status "${statusBruto}" não reconhecido — usando "Em aberto".`);
+  if (valorDesconto > valorOriginal) avisos.push("Desconto maior que o valor em aberto — o maior será usado.");
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    avisos.push("E-mail inválido — não será importado.");
   }
 
   return {
     nome,
     telefone,
-    email,
+    email: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null,
     valorOriginal,
     valorDesconto,
     status,
     linha: numeroLinha,
     erros,
+    avisos,
   };
 }
 
