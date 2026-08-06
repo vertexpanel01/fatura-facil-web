@@ -450,108 +450,212 @@ export function ImportarClientesDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" size="sm" onClick={gerarModeloPlanilha}>
-              <Download className="mr-2 size-4" />
-              Baixar modelo
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Arquivos .xlsx, .xls ou .csv. Depois do upload você escolhe manualmente qual coluna da planilha
-              corresponde a cada campo do sistema.
-            </p>
-          </div>
+          {/* Passo 1 — arquivo */}
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-foreground">1. Envie a planilha</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="outline" size="sm" onClick={gerarModeloPlanilha}>
+                <Download className="mr-2 size-4" />
+                Baixar modelo
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                .xlsx, .xls ou .csv. Depois do upload você escolhe qual coluna vai em cada campo.
+              </p>
+            </div>
 
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <p className="text-sm font-medium text-foreground">Data de vencimento das faturas</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Todas as faturas desta importação receberão esta mesma data.
-            </p>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "mt-3 w-full justify-start text-left font-normal sm:w-72",
-                    !vencimentoGlobal && "text-muted-foreground",
-                  )}
-                >
-                  <CalendarIcon className="mr-2 size-4" />
-                  {vencimentoGlobal
-                    ? format(vencimentoGlobal, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-                    : "Escolher data no calendário"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={vencimentoGlobal}
-                  onSelect={setVencimentoGlobal}
-                  locale={ptBR}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div
-            className="rounded-2xl border-2 border-dashed border-border bg-muted/40 p-8 text-center transition-colors hover:bg-muted/60"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const file = e.dataTransfer.files[0];
-              if (file) processarArquivo(file);
-            }}
-          >
-            <FileSpreadsheet className="mx-auto size-8 text-muted-foreground" />
-            <p className="mt-3 text-sm font-medium text-foreground">
-              Arraste uma planilha ou clique para selecionar
-            </p>
-            <p className="text-xs text-muted-foreground">.xlsx, .xls, .csv</p>
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
+            <div
+              className="rounded-2xl border-2 border-dashed border-border bg-muted/40 p-8 text-center transition-colors hover:bg-muted/60"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
                 if (file) processarArquivo(file);
               }}
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="mt-4"
-              onClick={() => inputRef.current?.click()}
-              disabled={carregandoLeitura}
             >
-              <Upload className="mr-2 size-4" />
-              Selecionar arquivo
-            </Button>
-          </div>
-
-          {nomeArquivo && (
-            <div className="flex items-center justify-between rounded-xl border border-border bg-card p-3 text-sm">
-              <span className="truncate pr-4">{nomeArquivo}</span>
-              <button onClick={limpar} className="text-muted-foreground hover:text-foreground">
-                <X className="size-4" />
-              </button>
+              <FileSpreadsheet className="mx-auto size-8 text-muted-foreground" />
+              <p className="mt-3 text-sm font-medium text-foreground">
+                Arraste uma planilha ou clique para selecionar
+              </p>
+              <p className="text-xs text-muted-foreground">.xlsx, .xls, .csv</p>
+              <input
+                ref={inputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) processarArquivo(file);
+                }}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                className="mt-4"
+                onClick={() => inputRef.current?.click()}
+                disabled={carregandoLeitura}
+              >
+                <Upload className="mr-2 size-4" />
+                Selecionar arquivo
+              </Button>
             </div>
-          )}
+
+            {nomeArquivo && (
+              <div className="flex items-center justify-between rounded-xl border border-border bg-card p-3 text-sm">
+                <span className="truncate pr-4">{nomeArquivo}</span>
+                <button onClick={limpar} className="text-muted-foreground hover:text-foreground">
+                  <X className="size-4" />
+                </button>
+              </div>
+            )}
+          </div>
 
           {cabecalhos.length > 0 && (
             <>
+              {/* Passo 2 — mapeamento */}
+              <div
+                ref={mapeamentoRef}
+                className="scroll-mt-4 space-y-4 rounded-2xl border-2 border-primary/40 bg-card p-4"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    2. Relacione as colunas da sua planilha
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Para cada campo do sistema, escolha a coluna correspondente. Os exemplos mostram
+                    dados reais do seu arquivo.
+                  </p>
+                </div>
+
+                <label className="flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-xs text-foreground">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-[hsl(var(--primary))]"
+                    checked={semCabecalho}
+                    onChange={(e) => alternarCabecalho(e.target.checked)}
+                  />
+                  A primeira linha já é um dado (minha planilha não tem cabeçalho)
+                </label>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {CAMPOS.map((c) => {
+                    const indice = mapa?.[c.campo] ?? null;
+                    const faltante = c.obrigatorio && indice === null;
+                    return (
+                      <div key={c.campo} className="space-y-1.5">
+                        <Label
+                          className={cn("text-xs", faltante && "text-destructive")}
+                        >
+                          {c.rotulo}{" "}
+                          <span className="text-muted-foreground">
+                            ({c.obrigatorio ? "obrigatório" : "opcional"})
+                          </span>
+                        </Label>
+                        <Select
+                          value={indice === null ? SEM_COLUNA : String(indice)}
+                          onValueChange={(v) =>
+                            setMapa((m) =>
+                              m ? { ...m, [c.campo]: v === SEM_COLUNA ? null : Number(v) } : m,
+                            )
+                          }
+                        >
+                          <SelectTrigger className={cn(faltante && "border-destructive")}>
+                            <SelectValue placeholder="Selecionar coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={SEM_COLUNA}>Não importar</SelectItem>
+                            {cabecalhos.map((h, i) => {
+                              const usadoPor = CAMPOS.find(
+                                (o) => o.campo !== c.campo && mapa?.[o.campo] === i,
+                              );
+                              return (
+                                <SelectItem key={i} value={String(i)}>
+                                  {h}
+                                  {exemplos[i]?.[0] ? ` — ex.: ${exemplos[i]?.[0]}` : ""}
+                                  {usadoPor ? ` (já usada em ${usadoPor.rotulo})` : ""}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {indice === null
+                            ? "Nenhuma coluna escolhida"
+                            : exemplos[indice]?.length
+                              ? `Ex.: ${exemplos[indice]?.join(", ")}`
+                              : "Coluna sem dados nas primeiras linhas"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {!mapeamentoCompleto && (
+                  <p className="text-xs font-medium text-destructive">
+                    Falta escolher: {faltando.map((c) => c.rotulo).join(", ")}.
+                  </p>
+                )}
+              </div>
+
+              {/* Passo 3 — vencimento */}
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-sm font-semibold text-foreground">
+                  3. Data de vencimento das faturas
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Todas as faturas desta importação receberão esta mesma data.
+                </p>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "mt-3 w-full justify-start text-left font-normal sm:w-72",
+                        !vencimentoGlobal && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 size-4" />
+                      {vencimentoGlobal
+                        ? format(vencimentoGlobal, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                        : "Escolher data no calendário"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={vencimentoGlobal}
+                      onSelect={setVencimentoGlobal}
+                      locale={ptBR}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Prévia bruta da planilha */}
               <div className="space-y-2">
                 <p className="text-sm font-medium text-foreground">Prévia da planilha</p>
                 <div className="max-h-56 overflow-auto rounded-xl border border-border">
                   <table className="w-full text-sm">
                     <thead className="bg-muted text-left text-xs font-medium uppercase text-muted-foreground">
                       <tr>
-                        {cabecalhos.map((h, i) => (
-                          <th key={i} className="whitespace-nowrap px-3 py-2">
-                            {h}
-                          </th>
-                        ))}
+                        {cabecalhos.map((h, i) => {
+                          const campo = CAMPOS.find((c) => mapa?.[c.campo] === i);
+                          return (
+                            <th
+                              key={i}
+                              className={cn(
+                                "whitespace-nowrap px-3 py-2 align-top",
+                                campo && "text-primary",
+                              )}
+                            >
+                              {h}
+                              <span className="block text-[10px] font-normal normal-case text-muted-foreground">
+                                {campo ? campo.rotulo : "não usada"}
+                              </span>
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -570,54 +674,6 @@ export function ImportarClientesDialog({
                 <p className="text-xs text-muted-foreground">
                   Mostrando as primeiras linhas de {brutas.length.toLocaleString("pt-BR")} do arquivo.
                 </p>
-              </div>
-
-              <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Mapeamento de colunas</p>
-                  <p className="text-xs text-muted-foreground">
-                    Escolha qual coluna da planilha corresponde a cada campo do sistema.
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {CAMPOS.map((c) => (
-                    <div key={c.campo} className="space-y-1.5">
-                      <Label className="text-xs">
-                        {c.rotulo}{" "}
-                        <span className="text-muted-foreground">
-                          ({c.obrigatorio ? "obrigatório" : "opcional"})
-                        </span>
-                      </Label>
-                      <Select
-                        value={mapa?.[c.campo] === null || mapa?.[c.campo] === undefined
-                          ? SEM_COLUNA
-                          : String(mapa[c.campo])}
-                        onValueChange={(v) =>
-                          setMapa((m) =>
-                            m ? { ...m, [c.campo]: v === SEM_COLUNA ? null : Number(v) } : m,
-                          )
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar coluna" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={SEM_COLUNA}>Não importar</SelectItem>
-                          {cabecalhos.map((h, i) => (
-                            <SelectItem key={i} value={String(i)}>
-                              {h}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ))}
-                </div>
-                {!mapeamentoCompleto && (
-                  <p className="text-xs text-destructive">
-                    Selecione as colunas de telefone, valor em aberto e valor com desconto para continuar.
-                  </p>
-                )}
               </div>
             </>
           )}
