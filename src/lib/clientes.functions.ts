@@ -52,33 +52,88 @@ export const importarClientes = createServerFn({ method: "POST" })
     }
 
     const idPorTelefone = new Map((resultado ?? []).map((r) => [r.telefone, r.id]));
+    const idsClientes = Array.from(idPorTelefone.values());
 
-    const faturas = data.clientes
-      .filter((c) => (c.valor_original ?? 0) > 0)
-      .map((c) => {
-        const telefone = c.telefone.replace(/\D/g, "");
-        const clienteId = idPorTelefone.get(telefone);
-        if (!clienteId) return null;
-        const vencimento =
-          c.vencimento && /^\d{4}-\d{2}-\d{2}$/.test(c.vencimento)
-            ? c.vencimento
-            : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        return {
+    // Faturas já existentes e ainda não pagas — atualizamos em vez de duplicar.
+    const { data: existentes } = idsClientes.length
+      ? await supabase
+          .from("faturas")
+          .select("id, cliente_id, status")
+          .in("cliente_id", idsClientes)
+          .in("status", ["em_aberto", "vencida", "expirada", "falhou", "em_processamento"])
+      : { data: [] as { id: string; cliente_id: string; status: string }[] };
+
+    const faturaAbertaPorCliente = new Map<string, string>();
+    for (const f of existentes ?? []) {
+      if (!faturaAbertaPorCliente.has(f.cliente_id)) faturaAbertaPorCliente.set(f.cliente_id, f.id);
+    }
+
+    const novasFaturas: {
+      cliente_id: string;
+      descricao: string;
+      valor_original: number;
+      valor_desconto: number;
+      vencimento: string;
+      status: "em_aberto";
+    }[] = [];
+    const atualizacoes: { id: string; valor_original: number; valor_desconto: number; vencimento: string }[] = [];
+
+    for (const c of data.clientes) {
+      const valorOriginal = c.valor_original ?? 0;
+      const valorDesconto = c.valor_desconto ?? 0;
+      if (valorOriginal <= 0 && valorDesconto <= 0) continue;
+
+      const telefone = c.telefone.replace(/\D/g, "");
+      const clienteId = idPorTelefone.get(telefone);
+      if (!clienteId) continue;
+
+      const vencimento =
+        c.vencimento && /^\d{4}-\d{2}-\d{2}$/.test(c.vencimento)
+          ? c.vencimento
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+      const faturaExistente = faturaAbertaPorCliente.get(clienteId);
+      if (faturaExistente) {
+        atualizacoes.push({
+          id: faturaExistente,
+          valor_original: valorOriginal || valorDesconto,
+          valor_desconto: valorDesconto,
+          vencimento,
+        });
+      } else {
+        novasFaturas.push({
           cliente_id: clienteId,
           descricao: "Fatura importada",
-          valor_original: c.valor_original ?? 0,
-          valor_desconto: c.valor_desconto ?? 0,
+          valor_original: valorOriginal || valorDesconto,
+          valor_desconto: valorDesconto,
           vencimento,
-        };
-      })
-      .filter((f): f is NonNullable<typeof f> => f !== null);
+          status: "em_aberto",
+        });
+      }
+    }
 
     let faturasCriadas = 0;
-    if (faturas.length) {
-      const { data: fatRes, error: fatErro } = await supabase.from("faturas").insert(faturas).select("id");
+    if (novasFaturas.length) {
+      const { data: fatRes, error: fatErro } = await supabase.from("faturas").insert(novasFaturas).select("id");
       if (fatErro) throw new Error(fatErro.message);
       faturasCriadas = fatRes?.length ?? 0;
     }
+
+    let faturasAtualizadas = 0;
+    for (const a of atualizacoes) {
+      const { error: updErro } = await supabase
+        .from("faturas")
+        .update({
+          valor_original: a.valor_original,
+          valor_desconto: a.valor_desconto,
+          vencimento: a.vencimento,
+          status: "em_aberto",
+        })
+        .eq("id", a.id);
+      if (updErro) throw new Error(updErro.message);
+      faturasAtualizadas += 1;
+    }
+
 
     const unicoTelefones = new Set(payload.map((c) => c.telefone));
     const afetados = resultado?.length ?? 0;
