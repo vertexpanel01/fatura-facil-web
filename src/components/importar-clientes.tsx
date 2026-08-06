@@ -309,6 +309,41 @@ export function ImportarClientesDialog({
             <p className="text-xs text-muted-foreground">Arquivos .xlsx ou .csv com as colunas Nome, Telefone, Valor em aberto, Valor com desconto, Vencimento, Email, CPF/CNPJ e Observações.</p>
           </div>
 
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-sm font-medium text-foreground">Data de vencimento das faturas</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Todas as faturas desta importação receberão esta mesma data.
+            </p>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "mt-3 w-full justify-start text-left font-normal sm:w-72",
+                    !vencimentoGlobal && "text-muted-foreground",
+                  )}
+                >
+                  <CalendarIcon className="mr-2 size-4" />
+                  {vencimentoGlobal
+                    ? format(vencimentoGlobal, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                    : "Escolher data no calendário"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={vencimentoGlobal}
+                  onSelect={setVencimentoGlobal}
+                  locale={ptBR}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+
+
           <div
             className="rounded-2xl border-2 border-dashed border-border bg-muted/40 p-8 text-center transition-colors hover:bg-muted/60"
             onDragOver={(e) => e.preventDefault()}
