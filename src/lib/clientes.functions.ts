@@ -96,9 +96,10 @@ export const importarClientes = createServerFn({ method: "POST" })
       if (!clienteId) continue;
 
       const vencimento =
-        c.vencimento && /^\d{4}-\d{2}-\d{2}$/.test(c.vencimento)
+        data.vencimento_global ??
+        (c.vencimento && /^\d{4}-\d{2}-\d{2}$/.test(c.vencimento)
           ? c.vencimento
-          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
 
       const faturaExistente = faturaAbertaPorCliente.get(clienteId);
       if (faturaExistente) {
