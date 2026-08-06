@@ -131,6 +131,16 @@ export function CardFatura({
     onError: () => toast.error("Não foi possível copiar. Selecione o código manualmente."),
   });
 
+  const confirmar = useMutation({
+    mutationFn: async () => confirmarPix({ data: { fatura_id: fatura.id } }),
+    onSuccess: (r) => {
+      setStatus(r.status);
+      toast.success("Pagamento confirmado! Fatura baixada.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   return (
     <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border bg-secondary/60 px-5 py-4">
