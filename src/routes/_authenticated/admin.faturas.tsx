@@ -193,7 +193,11 @@ function PaginaFaturas() {
           </p>
         </div>
         <ImportarClientesDialog
-          onSuccess={() => void queryClient.invalidateQueries({ queryKey: ["faturas-unificado"] })}
+          onSuccess={() => {
+            setBusca("");
+            setPagina(0);
+            void queryClient.invalidateQueries({ queryKey: ["faturas-unificado"] });
+          }}
         >
           <Button size="lg" className="gap-2">
             <Upload className="size-5" />

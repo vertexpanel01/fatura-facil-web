@@ -286,7 +286,7 @@ export function ImportarClientesDialog({
 
       const vencimento = format(vencimentoGlobal, "yyyy-MM-dd");
       const TAMANHO_LOTE = 500;
-      const totais = { importados: 0, faturasCriadas: 0, faturasAtualizadas: 0 };
+      const totais = { importados: 0, faturasCriadas: 0, faturasAtualizadas: 0, rejeitados: 0 };
 
       setProgresso({ feitos: 0, total: validas.length });
 
@@ -300,13 +300,22 @@ export function ImportarClientesDialog({
           status: l.status,
         }));
 
-        const res = await importarClientes({
-          data: { clientes: lote, vencimento_global: vencimento },
-        });
+        try {
+          const res = await importarClientes({
+            data: { clientes: lote, vencimento_global: vencimento },
+          });
 
-        totais.importados += res.importados;
-        totais.faturasCriadas += res.faturasCriadas;
-        totais.faturasAtualizadas += res.faturasAtualizadas;
+          totais.importados += res.importados;
+          totais.faturasCriadas += res.faturasCriadas;
+          totais.faturasAtualizadas += res.faturasAtualizadas;
+          totais.rejeitados += res.rejeitados?.length ?? 0;
+        } catch (erro) {
+          const msg = erro instanceof Error ? erro.message : "Falha desconhecida";
+          throw new Error(
+            `Falha no lote ${Math.floor(i / TAMANHO_LOTE) + 1} (linhas ${i + 1}–${Math.min(i + TAMANHO_LOTE, validas.length)}): ${msg}`,
+          );
+        }
+
         setProgresso({ feitos: Math.min(i + TAMANHO_LOTE, validas.length), total: validas.length });
       }
 
@@ -316,6 +325,7 @@ export function ImportarClientesDialog({
       const partes = [`${res.importados} clientes importados`];
       if (res.faturasCriadas) partes.push(`${res.faturasCriadas} faturas criadas`);
       if (res.faturasAtualizadas) partes.push(`${res.faturasAtualizadas} faturas atualizadas`);
+      if (res.rejeitados) partes.push(`${res.rejeitados} linhas rejeitadas`);
       toast.success(`${partes.join(" · ")}.`);
       limpar();
       setProgresso(null);
@@ -324,7 +334,7 @@ export function ImportarClientesDialog({
     },
     onError: (e: Error) => {
       setProgresso(null);
-      toast.error(e.message);
+      toast.error("Erro na importação", { description: e.message, duration: 12000 });
     },
   });
 
