@@ -49,37 +49,137 @@ export const importarClientes = createServerFn({ method: "POST" })
       throw new Error("Apenas administradores podem importar clientes.");
     }
 
-    const registros = data.clientes.map((c) => ({
-      nome: c.nome?.trim() || null,
-      telefone: c.telefone.replace(/\D/g, ""),
-      email: c.email?.trim() || null,
-      documento: c.documento?.trim() || null,
-      observacoes: c.observacoes?.trim() || null,
-      valor_original: c.valor_original ?? 0,
-      valor_desconto: c.valor_desconto ?? 0,
-      status: c.status ?? "em_aberto",
-    }));
+    const PENDENTES = ["em_aberto", "vencida", "expirada", "falhou", "em_processamento"];
 
+    // Normaliza telefones (remove DDI 55 e zeros à esquerda) e descarta inválidos.
+    const vistos = new Set<string>();
+    const registros: {
+      nome: string;
+      telefone: string;
+      email: string | null;
+      documento: string | null;
+      observacoes: string | null;
+      valor_original: number;
+      valor_desconto: number;
+      status: (typeof STATUS_VALIDOS)[number];
+    }[] = [];
+    const rejeitados: string[] = [];
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    for (const c of data.clientes) {
+      let tel = c.telefone.replace(/\D/g, "");
+      if ((tel.length === 12 || tel.length === 13) && tel.startsWith("55")) tel = tel.slice(2);
+      while (tel.length > 11 && tel.startsWith("0")) tel = tel.slice(1);
+      if (tel.length < 10 || tel.length > 11 || vistos.has(tel)) {
+        rejeitados.push(c.telefone);
+        continue;
+      }
+      vistos.add(tel);
 
-    const { data: resultado, error } = await supabaseAdmin.rpc("importar_faturas_lote", {
-      p_registros: registros,
-      p_vencimento: data.vencimento_global,
-      p_actor: userId,
-    });
+      const original = c.valor_original ?? 0;
+      const desconto = c.valor_desconto ?? 0;
+      registros.push({
+        nome: c.nome?.trim() || tel,
+        telefone: tel,
+        email: c.email?.trim() || null,
+        documento: c.documento?.trim() || null,
+        observacoes: c.observacoes?.trim() || null,
+        valor_original: Math.max(original, desconto),
+        valor_desconto: desconto,
+        status: c.status ?? "em_aberto",
+      });
+    }
 
-    if (error) throw new Error(error.message);
+    if (!registros.length) {
+      return { importados: 0, faturasCriadas: 0, faturasAtualizadas: 0, rejeitados };
+    }
 
-    const r = (resultado ?? {}) as {
-      clientes?: number;
-      faturas_criadas?: number;
-      faturas_atualizadas?: number;
-    };
+    // 1) Clientes: upsert por telefone.
+    const { data: clientesSalvos, error: erroClientes } = await supabase
+      .from("clientes")
+      .upsert(
+        registros.map((r) => ({
+          nome: r.nome,
+          telefone: r.telefone,
+          email: r.email,
+          documento: r.documento,
+          observacoes: r.observacoes,
+        })),
+        { onConflict: "telefone" },
+      )
+      .select("id, telefone");
+
+    if (erroClientes) throw new Error(`Erro ao salvar clientes: ${erroClientes.message}`);
+
+    const idPorTelefone = new Map((clientesSalvos ?? []).map((c) => [c.telefone, c.id]));
+
+    // 2) Faturas: atualiza a fatura pendente mais recente ou cria uma nova.
+    const clienteIds = [...idPorTelefone.values()];
+    const { data: pendentes, error: erroPendentes } = await supabase
+      .from("faturas")
+      .select("id, cliente_id, vencimento")
+      .in("cliente_id", clienteIds)
+      .in("status", PENDENTES)
+      .order("vencimento", { ascending: false });
+
+    if (erroPendentes) throw new Error(`Erro ao ler faturas: ${erroPendentes.message}`);
+
+    const faturaPorCliente = new Map<string, string>();
+    for (const f of pendentes ?? []) {
+      if (!faturaPorCliente.has(f.cliente_id)) faturaPorCliente.set(f.cliente_id, f.id);
+    }
+
+    let faturasAtualizadas = 0;
+    const novas: {
+      cliente_id: string;
+      descricao: string;
+      valor_original: number;
+      valor_desconto: number;
+      vencimento: string;
+      status: (typeof STATUS_VALIDOS)[number];
+    }[] = [];
+
+    for (const r of registros) {
+      const clienteId = idPorTelefone.get(r.telefone);
+      if (!clienteId) {
+        rejeitados.push(r.telefone);
+        continue;
+      }
+      const faturaId = faturaPorCliente.get(clienteId);
+      if (faturaId) {
+        const { error } = await supabase
+          .from("faturas")
+          .update({
+            valor_original: r.valor_original,
+            valor_desconto: r.valor_desconto,
+            vencimento: data.vencimento_global,
+            status: r.status,
+          })
+          .eq("id", faturaId);
+        if (error) throw new Error(`Erro ao atualizar fatura: ${error.message}`);
+        faturasAtualizadas += 1;
+      } else {
+        novas.push({
+          cliente_id: clienteId,
+          descricao: "Fatura importada",
+          valor_original: r.valor_original,
+          valor_desconto: r.valor_desconto,
+          vencimento: data.vencimento_global,
+          status: r.status,
+        });
+      }
+    }
+
+    let faturasCriadas = 0;
+    if (novas.length) {
+      const { data: criadas, error } = await supabase.from("faturas").insert(novas).select("id");
+      if (error) throw new Error(`Erro ao criar faturas: ${error.message}`);
+      faturasCriadas = criadas?.length ?? 0;
+    }
 
     return {
-      importados: r.clientes ?? 0,
-      faturasCriadas: r.faturas_criadas ?? 0,
-      faturasAtualizadas: r.faturas_atualizadas ?? 0,
+      importados: clientesSalvos?.length ?? 0,
+      faturasCriadas,
+      faturasAtualizadas,
+      rejeitados,
     };
   });
