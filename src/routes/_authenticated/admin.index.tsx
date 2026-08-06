@@ -4,9 +4,7 @@ import { useEffect } from "react";
 import {
   BarChart3,
   CalendarDays,
-  CircleDollarSign,
   Coins,
-  FileText,
   ReceiptText,
   Users,
   UserCheck,
@@ -33,27 +31,19 @@ function Dashboard() {
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => {
-      const [clientes, faturas, pagamentos] = await Promise.all([
+      const [clientes, faturas] = await Promise.all([
         supabase.from("clientes").select("id", { count: "exact", head: true }),
         supabase.from("faturas").select("id, status, valor_original, valor_desconto, vencimento, clientes(nome, telefone)"),
-        supabase.from("pagamentos").select("valor, status"),
       ]);
       const listaFaturas = faturas.data ?? [];
       const emAberto = listaFaturas.filter((f) => f.status === "em_aberto" || f.status === "vencida");
-      const pagas = listaFaturas.filter((f) => f.status === "paga");
-      const recebido = (pagamentos.data ?? [])
-        .filter((p) => p.status === "confirmado")
-        .reduce((s, p) => s + Number(p.valor), 0);
       return {
         totalClientes: clientes.count ?? 0,
-        totalFaturas: listaFaturas.length,
         emAberto,
-        totalPagas: pagas.length,
         valorEmAberto: emAberto.reduce(
           (s, f) => s + (Number(f.valor_desconto) || Number(f.valor_original)),
           0,
         ),
-        recebido,
         recentes: [...listaFaturas]
           .sort((a, b) => (a.vencimento < b.vencimento ? 1 : -1))
           .slice(0, 6),
@@ -90,21 +80,13 @@ function Dashboard() {
         <p className="text-sm text-muted-foreground">Resumo geral de clientes, faturas e pagamentos.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Cartao titulo="Clientes" valor={String(data?.totalClientes ?? 0)} icone={Users} carregando={isLoading} />
-        <Cartao titulo="Faturas" valor={String(data?.totalFaturas ?? 0)} icone={FileText} carregando={isLoading} />
         <Cartao
           titulo="Em aberto"
           valor={formatarMoeda(data?.valorEmAberto ?? 0)}
           descricao={`${data?.emAberto.length ?? 0} fatura(s)`}
           icone={ReceiptText}
-          carregando={isLoading}
-        />
-        <Cartao
-          titulo="Recebido"
-          valor={formatarMoeda(data?.recebido ?? 0)}
-          descricao={`${data?.totalPagas ?? 0} fatura(s) paga(s)`}
-          icone={CircleDollarSign}
           carregando={isLoading}
         />
       </div>
