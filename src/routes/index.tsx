@@ -90,14 +90,15 @@ function PaginaConsulta() {
   const mutation = useMutation({
     mutationFn: async () => {
       const digitos = somenteDigitos(telefone);
-      if (digitos.length !== 11) throw new Error("Telefone inválido");
+      if (digitos.length < 10 || digitos.length > 11) throw new Error("Telefone inválido");
       await navigate({ to: "/fatura/$telefone", params: { telefone: digitos } });
     },
     onError: () => toast.error("Informe um telefone válido."),
   });
 
   const digitos = somenteDigitos(telefone);
-  const podeConsultar = digitos.length === 11 && aceite && !mutation.isPending;
+  const podeConsultar = digitos.length >= 10 && digitos.length <= 11 && aceite && !mutation.isPending;
+
 
   return (
     <div className="min-h-screen bg-background">
