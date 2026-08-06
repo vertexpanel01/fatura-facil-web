@@ -22,7 +22,7 @@ export type FaturaPublica = {
 
 export type ConsultaResultado = {
   encontrado: boolean;
-  cliente?: { nome: string; documento: string };
+  cliente?: { nome: string; telefone: string };
   faturas?: FaturaPublica[];
 };
 
