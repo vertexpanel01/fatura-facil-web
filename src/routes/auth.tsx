@@ -107,7 +107,15 @@ function PaginaAuth() {
                   <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="senha">Senha</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="senha">Senha</Label>
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Esqueci minha senha
+                    </Link>
+                  </div>
                   <Input
                     id="senha"
                     type="password"
