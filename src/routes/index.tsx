@@ -1,15 +1,28 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Loader2, Search, ShieldCheck, Smartphone, Zap } from "lucide-react";
+import {
+  BadgeCheck,
+  Barcode,
+  Fingerprint,
+  Gavel,
+  Globe2,
+  Handshake,
+  IdCard,
+  Loader2,
+  ReceiptText,
+  ShieldCheck,
+  Wifi,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 
+import bannerCasal from "@/assets/banner-casal.jpg";
 import logo from "@/assets/logo-claro.png";
+import mulherSorrindo from "@/assets/mulher-sorrindo.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { consultarFaturas, iniciarPagamentoPix } from "@/lib/consulta.functions";
 import type { ConsultaResultado, FaturaPublica } from "@/lib/consulta.functions";
 import { formatarData, formatarMoeda, formatarTelefone, somenteDigitos } from "@/lib/format";
@@ -17,17 +30,16 @@ import { formatarData, formatarMoeda, formatarTelefone, somenteDigitos } from "@
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Consulta de Faturas — 2ª via e pagamento por telefone" },
+      { title: "Negocia Fácil — Consulte e pague sua fatura pelo telefone" },
       {
         name: "description",
         content:
-          "Consulte sua fatura pelo número de telefone, veja o valor com desconto, a data de vencimento e pague na hora com PIX.",
+          "Consulte sua fatura pelo número de telefone, veja o valor com desconto, o vencimento e pague na hora. Consulta grátis, segura e 100% online.",
       },
-      { property: "og:title", content: "Consulta de Faturas — 2ª via e pagamento" },
+      { property: "og:title", content: "Negocia Fácil — Consulta de faturas por telefone" },
       {
         property: "og:description",
-        content:
-          "Digite seu telefone e veja sua fatura: valor original, valor com desconto, vencimento e status.",
+        content: "Digite seu telefone e veja sua fatura: valor original, valor com desconto, vencimento e status.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -35,6 +47,43 @@ export const Route = createFileRoute("/")({
   }),
   component: PaginaConsulta,
 });
+
+const beneficios = [
+  { icone: Wifi, titulo: "Negociação 100% Online" },
+  { icone: Gavel, titulo: "Acordo sem burocracia" },
+  { icone: Globe2, titulo: "Negocie onde e quando quiser" },
+  { icone: Fingerprint, titulo: "Quitação ágil e segura" },
+] as const;
+
+const passos = [
+  { icone: IdCard, texto: "Informe o seu número de telefone com DDD" },
+  { icone: ReceiptText, texto: "Consulte os detalhes da sua fatura em aberto" },
+  { icone: Handshake, texto: "Veja o valor com desconto disponível para você" },
+  { icone: Barcode, texto: "Escolha pagar na hora com PIX" },
+] as const;
+
+const duvidas = [
+  {
+    p: "O que é o portal de consulta de faturas?",
+    r: "É um portal que permite consultar e quitar suas faturas em aberto de forma online, segura, prática e sem complicações — no momento e no lugar que você quiser.",
+  },
+  {
+    p: "Como consultar minha fatura?",
+    r: "Basta digitar o número de telefone cadastrado, com DDD, e clicar em Consultar Fatura. Você verá o nome do titular, o valor original, o valor com desconto, o vencimento e o status.",
+  },
+  {
+    p: "Não lembro qual telefone está cadastrado. O que faço?",
+    r: "No momento, a consulta é feita exclusivamente pelo número de telefone do cliente. Em caso de dúvida, entre em contato com o atendimento para confirmar o número cadastrado.",
+  },
+  {
+    p: "Como funciona o pagamento?",
+    r: "Ao clicar em Pagar Agora, sua solicitação é registrada e o pagamento é feito via PIX. O código copia e cola é gerado para você colar no aplicativo do seu banco.",
+  },
+  {
+    p: "Posso pagar com cartão de crédito?",
+    r: "No momento o pagamento é feito via PIX. Novas formas de pagamento poderão ser habilitadas futuramente.",
+  },
+] as const;
 
 function StatusBadge({ status }: { status: string }) {
   const estilos: Record<string, string> = {
@@ -104,7 +153,12 @@ function CardFatura({ fatura, nome, telefone }: { fatura: FaturaPublica; nome: s
           {economia > 0 ? ` · economia de ${formatarMoeda(economia)}` : ""}
         </p>
         {fatura.status !== "paga" ? (
-          <Button size="lg" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+          <Button
+            size="lg"
+            className="bg-cta text-cta-foreground hover:bg-cta/90"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+          >
             {mutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
             Pagar Agora
           </Button>
@@ -147,6 +201,7 @@ function Campo({
 
 function PaginaConsulta() {
   const [telefone, setTelefone] = useState("");
+  const [aceite, setAceite] = useState(false);
   const [resultado, setResultado] = useState<ConsultaResultado | null>(null);
   const consultar = useServerFn(consultarFaturas);
 
@@ -154,84 +209,112 @@ function PaginaConsulta() {
     mutationFn: () => consultar({ data: { telefone } }),
     onSuccess: (res) => {
       setResultado(res);
-      if (!res.encontrado) {
-        toast.error("Nenhum cadastro encontrado para este telefone.");
-      }
+      if (!res.encontrado) toast.error("Nenhum cadastro encontrado para este telefone.");
+      document.getElementById("resultado")?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
     onError: () => toast.error("Informe um telefone válido com DDD."),
   });
 
   const digitos = somenteDigitos(telefone);
-  const podeConsultar = digitos.length >= 10 && !mutation.isPending;
+  const podeConsultar = digitos.length >= 10 && aceite && !mutation.isPending;
 
   return (
-    <div className="min-h-screen bg-soft-gradient">
-      <header className="border-b border-border bg-card/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <img src={logo} alt="Logo da operadora" width={160} height={44} className="h-10 w-auto" />
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-30 bg-primary">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+          <img src={logo} alt="Logo da operadora Claro" width={140} height={38} className="h-8 w-auto" />
           <Link
             to="/auth"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            className="text-sm font-semibold text-primary-foreground/90 transition-opacity hover:opacity-75"
           >
             Área administrativa
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 pb-20">
-        <section className="mt-8 overflow-hidden rounded-3xl bg-hero-gradient px-6 py-12 text-primary-foreground shadow-elevated sm:px-12">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] opacity-80">Autoatendimento</p>
-          <h1 className="mt-3 max-w-2xl text-3xl font-bold leading-tight sm:text-5xl">
-            Consulte sua fatura pelo número de telefone
-          </h1>
-          <p className="mt-4 max-w-xl text-base opacity-90">
-            Sem cadastro e sem senha. Veja o valor com desconto, o vencimento e pague na hora.
-          </p>
-        </section>
-
-        <section className="-mt-8 rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
-          <form
-            className="flex flex-col gap-4 sm:flex-row sm:items-end"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (podeConsultar) mutation.mutate();
-            }}
-          >
-            <div className="flex-1">
-              <Label htmlFor="telefone" className="text-sm font-medium">
-                Número de telefone
-              </Label>
-              <div className="relative mt-2">
-                <Smartphone className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="telefone"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  placeholder="(11) 99999-9999"
-                  value={telefone}
-                  onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
-                  className="h-14 pl-11 text-lg"
-                />
+      {/* HERO */}
+      <section className="bg-primary">
+        <div className="grid lg:grid-cols-2">
+          <div className="relative min-h-[320px] lg:min-h-[480px]">
+            <img
+              src={bannerCasal}
+              alt="Casal sorrindo observando a tela de um laptop"
+              width={1280}
+              height={912}
+              className="absolute inset-0 size-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[oklch(0.15_0_0/0.85)]" />
+            <div className="relative flex h-full items-center px-6 py-12 sm:px-10">
+              <div className="max-w-md text-primary-foreground drop-shadow-lg lg:ml-auto">
+                <h1 className="text-2xl font-extrabold uppercase leading-tight sm:text-4xl">
+                  Negocia fácil: é o mês todo com até 70% de desconto!
+                </h1>
+                <p className="mt-4 text-base leading-relaxed sm:text-lg">
+                  Confira as ofertas e melhores condições de renegociação. Consulta grátis e segura.
+                </p>
               </div>
             </div>
-            <Button type="submit" size="lg" className="h-14 px-8 text-base" disabled={!podeConsultar}>
-              {mutation.isPending ? (
-                <Loader2 className="size-5 animate-spin" />
-              ) : (
-                <Search className="size-5" />
-              )}
-              Consultar Fatura
-            </Button>
-          </form>
-          <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-            <ShieldCheck className="size-4 text-success" />
-            Consulta segura: mostramos apenas os dados vinculados ao telefone informado.
-          </p>
-        </section>
+          </div>
 
+          <div className="flex items-center justify-center px-6 py-12 sm:px-10">
+            <form
+              className="w-full max-w-md"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (podeConsultar) mutation.mutate();
+              }}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary-foreground underline underline-offset-4">
+                Consulta pelo telefone
+              </p>
+              <label htmlFor="telefone" className="sr-only">
+                Digite seu telefone
+              </label>
+              <Input
+                id="telefone"
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="Digite seu telefone com DDD"
+                value={telefone}
+                onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+                className="mt-4 h-14 rounded-full border-0 bg-card px-6 text-base shadow-card"
+              />
+
+              <label className="mt-4 flex items-start gap-2 text-sm text-primary-foreground">
+                <input
+                  type="checkbox"
+                  checked={aceite}
+                  onChange={(e) => setAceite(e.target.checked)}
+                  className="mt-1 size-4 accent-[oklch(0.99_0_0)]"
+                />
+                <span>
+                  Li e aceito os <span className="font-bold underline">Termos de Uso e Política de Privacidade.</span>
+                </span>
+              </label>
+
+              <Button
+                type="submit"
+                size="lg"
+                disabled={!podeConsultar}
+                className="mt-6 h-14 w-full rounded-full bg-cta text-base font-bold text-cta-foreground hover:bg-cta/90"
+              >
+                {mutation.isPending ? <Loader2 className="size-5 animate-spin" /> : null}
+                Consultar Fatura
+              </Button>
+              <p className="mt-3 flex items-center gap-2 text-xs text-primary-foreground/85">
+                <ShieldCheck className="size-4" />
+                Mostramos apenas os dados vinculados ao telefone informado.
+              </p>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      {/* RESULTADO */}
+      <div id="resultado" className="mx-auto max-w-4xl px-4">
         {resultado?.encontrado && resultado.cliente ? (
-          <section className="mt-10 space-y-5">
-            <h2 className="text-xl font-semibold text-foreground">Faturas encontradas</h2>
+          <section className="mt-12 space-y-5">
+            <h2 className="text-xl font-bold text-foreground">Faturas encontradas</h2>
             {resultado.faturas?.length ? (
               resultado.faturas.map((f) => (
                 <CardFatura
@@ -250,14 +333,131 @@ function PaginaConsulta() {
         ) : null}
 
         {resultado && !resultado.encontrado ? (
-          <section className="mt-10 rounded-xl border border-border bg-card p-8 text-center">
+          <section className="mt-12 rounded-xl border border-border bg-card p-8 text-center">
             <h2 className="text-lg font-semibold text-foreground">Telefone não localizado</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Confira o número digitado (com DDD) ou entre em contato com o atendimento.
             </p>
           </section>
         ) : null}
-      </main>
+      </div>
+
+      {/* BENEFÍCIOS */}
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-16 sm:grid-cols-2 lg:grid-cols-4">
+        {beneficios.map((b) => (
+          <div
+            key={b.titulo}
+            className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-primary/40 bg-card px-6 py-10 text-center shadow-card"
+          >
+            <b.icone className="size-12 text-primary" strokeWidth={2.2} />
+            <h2 className="text-xl font-bold leading-tight text-primary">{b.titulo}</h2>
+          </div>
+        ))}
+      </section>
+
+      {/* COMO FUNCIONA */}
+      <section className="mx-auto max-w-7xl px-4 pb-16">
+        <div className="relative rounded-3xl bg-primary px-6 pb-12 pt-14 text-primary-foreground sm:px-12">
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold">
+            Veja como funciona:
+          </span>
+          <ol className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            {passos.map((p, i) => (
+              <li key={p.texto} className="flex flex-col items-center gap-4 text-center">
+                <p.icone className="size-12" strokeWidth={1.8} />
+                <p className="text-base font-medium leading-snug">
+                  <span className="mr-1 font-bold">{i + 1}.</span>
+                  {p.texto}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* TEXTO INSTITUCIONAL */}
+      <section className="mx-auto max-w-4xl px-4 pb-16">
+        <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Bem-vindo ao Portal Negocia Fácil!</h2>
+        <p className="mt-4 font-semibold text-foreground">Aqui você pode:</p>
+        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+          {["Consultar sua fatura", "Ver o valor com desconto", "Solicitar a 2ª via", "Pagar sua fatura por PIX"].map(
+            (i) => (
+              <li key={i} className="flex items-center gap-2 text-muted-foreground">
+                <BadgeCheck className="size-5 shrink-0 text-primary" />
+                {i}
+              </li>
+            ),
+          )}
+        </ul>
+        <p className="mt-6 leading-relaxed text-muted-foreground">
+          O portal é uma plataforma online que permite consultar e quitar faturas de forma simples, rápida, segura e
+          com os melhores descontos. Você acessa com o seu número de telefone, vê os detalhes da sua fatura — valor
+          original, valor com desconto, vencimento e status — e paga na hora, sem precisar de atendente ou ligação
+          telefônica.
+        </p>
+      </section>
+
+      {/* FAQ */}
+      <section className="bg-secondary/60 py-16">
+        <div className="mx-auto max-w-4xl px-4">
+          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Perguntas frequentes</h2>
+          <p className="mt-2 text-muted-foreground">
+            Ainda com dúvidas? Consulte abaixo as principais perguntas de outros clientes.
+          </p>
+          <div className="mt-8 space-y-3">
+            {duvidas.map((d) => (
+              <details key={d.p} className="group rounded-xl border border-border bg-card px-5 py-4 shadow-card">
+                <summary className="cursor-pointer list-none text-base font-semibold text-foreground marker:hidden">
+                  {d.p}
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{d.r}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA FINAL */}
+      <section className="bg-primary">
+        <div className="mx-auto grid max-w-7xl items-end gap-8 px-4 pt-14 lg:grid-cols-2">
+          <div className="pb-14 text-primary-foreground">
+            <h2 className="text-2xl font-extrabold leading-tight sm:text-4xl">
+              Quite suas faturas em atraso com até 70% de desconto!
+            </h2>
+            <p className="mt-4 max-w-xl leading-relaxed opacity-90">
+              Regularize sua situação de forma 100% online, segura e intuitiva. Consulte gratuitamente pelo seu número
+              de telefone e escolha pagar agora com PIX.
+            </p>
+            <Button
+              size="lg"
+              className="mt-8 h-14 rounded-full bg-cta px-10 text-base font-bold text-cta-foreground hover:bg-cta/90"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                document.getElementById("telefone")?.focus();
+              }}
+            >
+              Consultar gratuitamente
+            </Button>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <img
+              src={mulherSorrindo}
+              alt="Mulher sorrindo segurando um celular"
+              width={912}
+              height={1008}
+              loading="lazy"
+              className="h-64 w-auto object-contain sm:h-80 lg:h-96"
+            />
+          </div>
+        </div>
+      </section>
+
+      <footer className="bg-card py-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 text-center text-sm text-muted-foreground">
+          <img src={logo} alt="Logo da operadora Claro" width={120} height={33} loading="lazy" className="h-7 w-auto" />
+          <p>Consulta de faturas e pagamento por PIX · Atendimento 100% online.</p>
+        </div>
+      </footer>
     </div>
   );
 }
