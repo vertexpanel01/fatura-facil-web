@@ -15,7 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as FaturaTelefoneRouteImport } from './routes/fatura.$telefone'
+import { Route as FaturaCpfRouteImport } from './routes/fatura.$cpf'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminFaturasRouteImport } from './routes/_authenticated/admin.faturas'
@@ -51,9 +51,9 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const FaturaTelefoneRoute = FaturaTelefoneRouteImport.update({
-  id: '/fatura/$telefone',
-  path: '/fatura/$telefone',
+const FaturaCpfRoute = FaturaCpfRouteImport.update({
+  id: '/fatura/$cpf',
+  path: '/fatura/$cpf',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -91,7 +91,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/fatura/$telefone': typeof FaturaTelefoneRoute
+  '/fatura/$cpf': typeof FaturaCpfRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
@@ -103,7 +103,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/fatura/$telefone': typeof FaturaTelefoneRoute
+  '/fatura/$cpf': typeof FaturaCpfRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
@@ -118,7 +118,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
-  '/fatura/$telefone': typeof FaturaTelefoneRoute
+  '/fatura/$cpf': typeof FaturaCpfRoute
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/_authenticated/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
@@ -133,7 +133,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/admin'
-    | '/fatura/$telefone'
+    | '/fatura/$cpf'
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/pagamentos'
@@ -145,7 +145,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/forgot-password'
     | '/reset-password'
-    | '/fatura/$telefone'
+    | '/fatura/$cpf'
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/pagamentos'
@@ -159,7 +159,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/_authenticated/admin'
-    | '/fatura/$telefone'
+    | '/fatura/$cpf'
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/faturas'
     | '/_authenticated/admin/pagamentos'
@@ -173,7 +173,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  FaturaTelefoneRoute: typeof FaturaTelefoneRoute
+  FaturaCpfRoute: typeof FaturaCpfRoute
   ApiPublicPixWebhookRoute: typeof ApiPublicPixWebhookRoute
 }
 
@@ -221,11 +221,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/fatura/$telefone': {
-      id: '/fatura/$telefone'
-      path: '/fatura/$telefone'
-      fullPath: '/fatura/$telefone'
-      preLoaderRoute: typeof FaturaTelefoneRouteImport
+    '/fatura/$cpf': {
+      id: '/fatura/$cpf'
+      path: '/fatura/$cpf'
+      fullPath: '/fatura/$cpf'
+      preLoaderRoute: typeof FaturaCpfRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
@@ -300,7 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  FaturaTelefoneRoute: FaturaTelefoneRoute,
+  FaturaCpfRoute: FaturaCpfRoute,
   ApiPublicPixWebhookRoute: ApiPublicPixWebhookRoute,
 }
 export const routeTree = rootRouteImport

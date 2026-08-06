@@ -78,15 +78,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Consulta de Faturas e Pagamentos" },
+      { title: "Fatura Móvel — Consulta e pagamento de faturas" },
       {
         name: "description",
-        content: "Consulte sua fatura pelo número de telefone e pague com PIX em segundos.",
+        content: "Consulte sua fatura pelo CPF e pague com PIX em segundos.",
       },
-      { property: "og:title", content: "Consulta de Faturas e Pagamentos" },
+      { property: "og:title", content: "Fatura Móvel — Consulta e pagamento de faturas" },
       {
         property: "og:description",
-        content: "Consulte sua fatura pelo número de telefone e pague com PIX em segundos.",
+        content: "Consulte sua fatura pelo CPF e pague com PIX em segundos.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
