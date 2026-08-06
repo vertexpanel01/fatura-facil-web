@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      acessos: {
+        Row: {
+          created_at: string
+          data_hora: string
+          id: string
+          pagina: string
+          sucesso: boolean
+          telefone_consultado: string | null
+          valor_desconto: number | null
+          valor_original: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_hora?: string
+          id?: string
+          pagina: string
+          sucesso?: boolean
+          telefone_consultado?: string | null
+          valor_desconto?: number | null
+          valor_original?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_hora?: string
+          id?: string
+          pagina?: string
+          sucesso?: boolean
+          telefone_consultado?: string | null
+          valor_desconto?: number | null
+          valor_original?: number | null
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           created_at: string

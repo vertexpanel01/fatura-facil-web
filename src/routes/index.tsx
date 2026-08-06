@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BadgeCheck,
   Barcode,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { registrarAcesso } from "@/lib/acessos.functions";
 import bannerCasal from "@/assets/banner-casal.jpg";
 import logo from "@/assets/logo-claro.png";
 
@@ -86,6 +87,12 @@ function PaginaConsulta() {
   const [telefone, setTelefone] = useState("");
   const [aceite, setAceite] = useState(false);
   const navigate = useNavigate();
+
+  // Contabiliza a visita à página pública (invisível para o visitante).
+  useEffect(() => {
+    void registrarAcesso({ data: { pagina: "/" } }).catch(() => {});
+  }, []);
+
 
   const mutation = useMutation({
     mutationFn: async () => {

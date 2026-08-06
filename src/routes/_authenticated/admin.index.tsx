@@ -1,9 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { CircleDollarSign, FileText, ReceiptText, Users } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import {
+  BarChart3,
+  CalendarDays,
+  CircleDollarSign,
+  Coins,
+  FileText,
+  ReceiptText,
+  Users,
+  UserCheck,
+} from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { obterMetricasAcessos } from "@/lib/acessos.functions";
 import { formatarData, formatarMoeda, formatarTelefone } from "@/lib/format";
+
+function formatarDataHora(iso: string) {
+  return new Date(iso).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
@@ -48,6 +71,28 @@ function Dashboard() {
     },
   });
 
+  const queryClient = useQueryClient();
+  const { data: metricas, isLoading: carregandoMetricas } = useQuery({
+    queryKey: ["metricas-acessos"],
+    queryFn: () => obterMetricasAcessos(),
+    refetchInterval: 30000,
+  });
+
+  // Atualização em tempo real conforme novos acessos chegam.
+  useEffect(() => {
+    const canal = supabase
+      .channel("acessos-dashboard")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "acessos" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["metricas-acessos"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [queryClient]);
+
+
+
   return (
     <div className="space-y-8">
       <div>
@@ -73,6 +118,100 @@ function Dashboard() {
           carregando={isLoading}
         />
       </div>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Métricas de acesso</h2>
+          <p className="text-sm text-muted-foreground">
+            Atualização em tempo real · visível apenas aqui no painel administrativo.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Cartao
+            titulo="Clientes que acessaram"
+            valor={(metricas?.clientes_total ?? 0).toLocaleString("pt-BR")}
+            descricao={`${(metricas?.clientes_mes ?? 0).toLocaleString("pt-BR")} no mês · telefones únicos`}
+            icone={UserCheck}
+            carregando={carregandoMetricas}
+          />
+          <Cartao
+            titulo="Faturas visualizadas (com desconto)"
+            valor={formatarMoeda(metricas?.valor_desconto_total ?? 0)}
+            descricao={`Hoje ${formatarMoeda(metricas?.valor_desconto_hoje ?? 0)} · Mês ${formatarMoeda(metricas?.valor_desconto_mes ?? 0)}`}
+            icone={Coins}
+            carregando={carregandoMetricas}
+          />
+          <Cartao
+            titulo="Total em aberto consultado"
+            valor={formatarMoeda(metricas?.valor_aberto_total ?? 0)}
+            descricao={`Hoje ${formatarMoeda(metricas?.valor_aberto_hoje ?? 0)} · Mês ${formatarMoeda(metricas?.valor_aberto_mes ?? 0)}`}
+            icone={BarChart3}
+            carregando={carregandoMetricas}
+          />
+          <Cartao
+            titulo="Acessos hoje"
+            valor={(metricas?.acessos_hoje ?? 0).toLocaleString("pt-BR")}
+            descricao={`${(metricas?.clientes_hoje ?? 0).toLocaleString("pt-BR")} cliente(s) · ${(metricas?.consultas_hoje ?? 0).toLocaleString("pt-BR")} consulta(s)`}
+            icone={CalendarDays}
+            carregando={carregandoMetricas}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Cartao
+            titulo="Acessos no mês"
+            valor={(metricas?.acessos_mes ?? 0).toLocaleString("pt-BR")}
+            icone={CalendarDays}
+            carregando={carregandoMetricas}
+          />
+          <Cartao
+            titulo="Acessos totais"
+            valor={(metricas?.acessos_total ?? 0).toLocaleString("pt-BR")}
+            icone={BarChart3}
+            carregando={carregandoMetricas}
+          />
+          <Cartao
+            titulo="Consultas realizadas"
+            valor={(metricas?.consultas_total ?? 0).toLocaleString("pt-BR")}
+            descricao="Quando o cliente pesquisou um telefone"
+            icone={ReceiptText}
+            carregando={carregandoMetricas}
+          />
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card shadow-card">
+          <h3 className="border-b border-border px-5 py-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Últimos acessos
+          </h3>
+          <div className="divide-y divide-border">
+            {(metricas?.recentes ?? []).map((a) => (
+              <div key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                <div>
+                  <p className="font-medium text-foreground">
+                    {a.telefone_consultado ? formatarTelefone(a.telefone_consultado) : "Visita à página inicial"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatarDataHora(a.data_hora)} · {a.pagina}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {a.telefone_consultado
+                    ? a.sucesso
+                      ? `Fatura ${formatarMoeda(a.valor_desconto ?? 0)}`
+                      : "Sem fatura"
+                    : "—"}
+                </p>
+              </div>
+            ))}
+            {!carregandoMetricas && !(metricas?.recentes ?? []).length ? (
+              <p className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhum acesso registrado ainda.</p>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+
 
       <section className="rounded-2xl border border-border bg-card shadow-card">
         <h2 className="border-b border-border px-5 py-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
