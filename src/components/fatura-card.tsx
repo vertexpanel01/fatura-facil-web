@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Copy, Loader2, QrCode, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, Copy, Loader2, QrCode, ShieldCheck } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 
