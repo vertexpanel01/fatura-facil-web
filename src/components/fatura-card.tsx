@@ -71,11 +71,11 @@ export function Campo({
 export function CardFatura({
   fatura,
   nome,
-  telefone,
+  documento,
 }: {
   fatura: FaturaPublica;
   nome: string;
-  telefone: string;
+  documento: string;
 }) {
   const gerarPix = useServerFn(gerarPixFatura);
   const verStatus = useServerFn(consultarStatusFatura);
