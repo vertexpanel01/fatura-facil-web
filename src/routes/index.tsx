@@ -13,7 +13,6 @@ import {
   ReceiptText,
   ShieldCheck,
   Wifi,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
