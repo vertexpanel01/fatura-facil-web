@@ -680,6 +680,7 @@ export function ImportarClientesDialog({
 
           {linhas.length > 0 && (
             <div className="space-y-3">
+              <p className="text-sm font-semibold text-foreground">4. Confira e importe</p>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border bg-card p-3 text-sm">
                 <span className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-green-600" />
