@@ -248,7 +248,7 @@ function PaginaConsulta() {
         </ul>
         <p className="mt-6 leading-relaxed text-muted-foreground">
           O portal é uma plataforma online que permite consultar e quitar faturas de forma simples, rápida, segura e
-          com os melhores descontos. Você acessa com o seu CPF, vê os detalhes da sua fatura — valor
+          com os melhores descontos. Você acessa com o seu telefone celular, vê os detalhes da sua fatura — valor
           original, valor com desconto, vencimento e status — e paga na hora, sem precisar de atendente ou ligação
           telefônica.
         </p>
