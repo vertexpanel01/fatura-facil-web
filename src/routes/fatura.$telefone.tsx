@@ -8,7 +8,7 @@ import { consultarFaturas } from "@/lib/consulta.functions";
 import type { FaturaPublica } from "@/lib/consulta.functions";
 import { formatarCpf } from "@/lib/format";
 
-export const Route = createFileRoute("/fatura/$cpf")({
+export const Route = createFileRoute("/fatura/$telefone")({
   loader: ({ params }) => consultarFaturas({ data: { cpf: params.cpf } }),
   head: () => ({
     meta: [
