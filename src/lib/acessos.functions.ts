@@ -76,11 +76,13 @@ function limites() {
 export const obterMetricasAcessos = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<MetricasAcessos> => {
-    const { data: isAdmin, error: erroPapel } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (erroPapel || !isAdmin) throw new Error("Acesso restrito a administradores.");
+    const { data: papel, error: erroPapel } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (erroPapel || !papel) throw new Error("Acesso restrito a administradores.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { inicioDia, inicioMes } = limites();
