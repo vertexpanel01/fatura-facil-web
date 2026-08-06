@@ -44,11 +44,18 @@ export const consultarFaturas = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ConsultaResultado> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Variantes toleram cadastros gravados com/sem DDI e com/sem o 9 extra.
+    const t = data.telefone;
+    const variantes = new Set<string>([t, `55${t}`]);
+    if (t.length === 11 && t[2] === "9") variantes.add(t.slice(0, 2) + t.slice(3));
+    if (t.length === 10) variantes.add(`${t.slice(0, 2)}9${t.slice(2)}`);
+
     const { data: clientes, error: erroCliente } = await supabaseAdmin
       .from("clientes")
       .select("id, nome, telefone")
-      .eq("telefone", data.telefone)
+      .in("telefone", [...variantes])
       .limit(1);
+
 
     if (erroCliente) throw new Error("Não foi possível consultar no momento.");
     const cliente = clientes?.[0];
