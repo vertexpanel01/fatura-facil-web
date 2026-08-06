@@ -1,9 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { CircleDollarSign, FileText, ReceiptText, Users } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import {
+  BarChart3,
+  CalendarDays,
+  CircleDollarSign,
+  Coins,
+  FileText,
+  ReceiptText,
+  Users,
+  UserCheck,
+} from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { obterMetricasAcessos } from "@/lib/acessos.functions";
 import { formatarData, formatarMoeda, formatarTelefone } from "@/lib/format";
+
+function formatarDataHora(iso: string) {
+  return new Date(iso).toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
