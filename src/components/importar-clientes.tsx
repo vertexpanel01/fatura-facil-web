@@ -380,29 +380,39 @@ export function ImportarClientesDialog({
         const sheet = firstSheetName ? workbook.Sheets[firstSheetName] : undefined;
         if (!sheet) {
           toast.error("Não foi possível ler a aba da planilha.");
-          setCabecalhos([]);
-          setBrutas([]);
+          setRaw([]);
           setMapa(null);
           setCarregandoLeitura(false);
           return;
         }
 
-        const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false }) as CelulaBruta[][];
+        const linhasRaw = XLSX.utils.sheet_to_json(sheet, {
+          header: 1,
+          blankrows: false,
+        }) as CelulaBruta[][];
 
-        const firstRow = raw[0];
-        if (raw.length < 2 || !firstRow) {
-          toast.error("A planilha deve conter uma linha de cabeçalho e pelo menos uma linha de dados.");
-          setCabecalhos([]);
-          setBrutas([]);
+        if (!linhasRaw.length) {
+          toast.error("A planilha está vazia.");
+          setRaw([]);
           setMapa(null);
           setCarregandoLeitura(false);
           return;
         }
 
-        const cabs = firstRow.map((h, i) => String(h ?? "").trim() || `Coluna ${i + 1}`);
-        setCabecalhos(cabs);
-        setBrutas(raw.slice(1));
-        setMapa(mapeamentoAutomatico(cabs));
+        // Sem cabeçalho quando a primeira linha já parece um dado (telefone/valores).
+        const primeira = linhasRaw[0] ?? [];
+        const pareceDado =
+          primeira.filter((c) => somenteDigitos(String(c ?? "")).length >= 6).length >= 1 &&
+          primeira.every((c) => !/[a-zA-Z]{4,}/.test(String(c ?? "")));
+        const semCab = linhasRaw.length === 1 ? true : pareceDado;
+
+        setRaw(linhasRaw);
+        setSemCabecalho(semCab);
+        setMapa(mapeamentoAutomatico(calcularCabecalhos(linhasRaw, semCab)));
+        setTimeout(
+          () => mapeamentoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+          120,
+        );
       } catch {
         toast.error("Erro ao ler planilha. Verifique o formato e tente novamente.");
       } finally {
@@ -418,9 +428,14 @@ export function ImportarClientesDialog({
     reader.readAsArrayBuffer(file);
   }
 
+  function alternarCabecalho(valor: boolean) {
+    setSemCabecalho(valor);
+    setMapa(mapeamentoAutomatico(calcularCabecalhos(raw, valor)));
+  }
+
   function limpar() {
-    setCabecalhos([]);
-    setBrutas([]);
+    setRaw([]);
+    setSemCabecalho(false);
     setMapa(null);
     setNomeArquivo(null);
     if (inputRef.current) inputRef.current.value = "";
