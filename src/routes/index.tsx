@@ -26,13 +26,13 @@ import { formatarTelefone, somenteDigitos } from "@/lib/format";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Fatura Móvel — Consulte e pague sua fatura pelo telefone" },
+      { title: "Fatura em Dia — Consulte e pague sua fatura" },
       {
         name: "description",
         content:
           "Consulte sua fatura pelo número de telefone, veja o valor com desconto, o vencimento e pague na hora. Consulta grátis, segura e 100% online.",
       },
-      { property: "og:title", content: "Fatura Móvel — Consulta de faturas por telefone" },
+      { property: "og:title", content: "Fatura em Dia — Consulta de faturas por telefone" },
       {
         property: "og:description",
         content: "Digite seu telefone e veja sua fatura: valor original, valor com desconto, vencimento e status.",
@@ -136,7 +136,7 @@ function PaginaConsulta() {
 
               <div className="max-w-md text-primary-foreground drop-shadow-lg lg:ml-auto">
                 <h1 className="text-2xl font-extrabold uppercase leading-tight sm:text-4xl">
-                  Fatura Móvel
+                  Fatura em Dia
                 </h1>
                 <p className="mt-4 text-base leading-relaxed sm:text-lg">
                   Pague sua fatura em dia e garanta descontos imperdíveis.
@@ -234,7 +234,7 @@ function PaginaConsulta() {
 
       {/* TEXTO INSTITUCIONAL */}
       <section className="mx-auto max-w-4xl px-4 pb-16">
-        <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Bem-vindo ao Portal Fatura Móvel!</h2>
+        <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Bem-vindo ao Portal Fatura em Dia!</h2>
         <p className="mt-4 font-semibold text-foreground">Aqui você pode:</p>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {["Consultar sua fatura", "Ver o valor com desconto", "Solicitar a 2ª via", "Pagar sua fatura por PIX"].map(
