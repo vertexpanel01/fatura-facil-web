@@ -139,7 +139,7 @@ function PaginaConsulta() {
                   Fatura Móvel
                 </h1>
                 <p className="mt-4 text-base leading-relaxed sm:text-lg">
-                  Aproveite descontos imperdíveis. Consulta grátis e segura.
+                  Pague sua fatura em dia e garanta descontos imperdíveis.
                 </p>
               </div>
             </div>
