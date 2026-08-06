@@ -227,11 +227,23 @@ export function CardFatura({
                 Copiar código PIX
               </Button>
 
+              <Button
+                variant="outline"
+                size="lg"
+                className="mt-3 h-12 w-full rounded-full"
+                onClick={() => confirmar.mutate()}
+                disabled={!copiaCola || confirmar.isPending}
+              >
+                {confirmar.isPending ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                Já efetuei o pagamento
+              </Button>
+
               <p className="mt-4 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
                 <Loader2 className="size-3.5 animate-spin" />
-                Aguardando pagamento…
+                Aguardando confirmação do pagamento…
               </p>
             </div>
+
 
             <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <ShieldCheck className="size-4" />
