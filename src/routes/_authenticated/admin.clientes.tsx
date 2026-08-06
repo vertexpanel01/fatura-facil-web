@@ -136,12 +136,7 @@ function PaginaClientes() {
             </Button>
           </ImportarClientesDialog>
           <Dialog open={aberto} onOpenChange={setAberto}>
-            <DialogTrigger asChild>
-              <Button onClick={abrirNovo}>
-                <Plus className="size-4" />
-                Novo cliente
-              </Button>
-            </DialogTrigger>
+
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editando ? "Editar cliente" : "Novo cliente"}</DialogTitle>

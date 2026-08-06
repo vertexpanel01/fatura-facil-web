@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
+import { confirmarPagamentoPix, consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
 import type { FaturaPublica } from "@/lib/consulta.functions";
 import {
   formatarData,
@@ -79,6 +79,7 @@ export function CardFatura({
 }) {
   const gerarPix = useServerFn(gerarPixFatura);
   const verStatus = useServerFn(consultarStatusFatura);
+  const confirmarPix = useServerFn(confirmarPagamentoPix);
 
   const [status, setStatus] = useState<string>(fatura.status);
   const [qr, setQr] = useState<string | null>(null);
