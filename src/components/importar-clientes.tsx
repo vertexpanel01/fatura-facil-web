@@ -49,6 +49,7 @@ type LinhaPlanilha = {
   status: string | null;
   linha: number;
   erros: string[];
+  avisos: string[];
 };
 
 const CAMPOS: { campo: Campo; rotulo: string; obrigatorio: boolean; chaves: string[] }[] = [
@@ -56,21 +57,21 @@ const CAMPOS: { campo: Campo; rotulo: string; obrigatorio: boolean; chaves: stri
     campo: "telefone",
     rotulo: "Telefone",
     obrigatorio: true,
-    chaves: ["telefone", "tel", "celular", "phone", "whatsapp"],
+    chaves: ["telefone", "tel", "celular", "phone", "whatsapp", "fone", "numero", "num"],
   },
-  { campo: "nome", rotulo: "Nome", obrigatorio: true, chaves: ["nome", "name", "cliente"] },
+  { campo: "nome", rotulo: "Nome", obrigatorio: false, chaves: ["nome", "name", "cliente"] },
   { campo: "email", rotulo: "E-mail", obrigatorio: false, chaves: ["email", "email", "mail"] },
   {
     campo: "valorOriginal",
     rotulo: "Valor em Aberto",
     obrigatorio: true,
-    chaves: ["valororiginal", "valoremaberto", "valor", "valoraberto", "valordafatura", "valorfatura"],
+    chaves: ["valororiginal", "valoremaberto", "valor", "valoraberto", "valordafatura", "valorfatura", "divida", "saldo"],
   },
   {
     campo: "valorDesconto",
     rotulo: "Valor com Desconto",
     obrigatorio: true,
-    chaves: ["valorcomdesconto", "valordesconto", "desconto", "valorpromocional"],
+    chaves: ["valorcomdesconto", "valordesconto", "desconto", "valorpromocional", "valoravista"],
   },
   { campo: "status", rotulo: "Status", obrigatorio: false, chaves: ["status", "situacao"] },
 ];
@@ -79,11 +80,29 @@ const STATUS_VALIDOS = Object.keys(STATUS_FATURA);
 
 const SEM_COLUNA = "__nenhuma__";
 
+/**
+ * Aceita "1.200,50", "1200.50", "R$ 1.200", "1 200,50" e células numéricas.
+ * Devolve null apenas quando o conteúdo não é reconhecível como número.
+ */
 function parseMoeda(valor: string): number | null {
-  if (!valor) return null;
-  const limpo = valor.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  if (!valor.trim()) return null;
+  let limpo = valor.replace(/[^\d,.-]/g, "");
+  if (!/\d/.test(limpo)) return null;
+  const temVirgula = limpo.includes(",");
+  const temPonto = limpo.includes(".");
+  if (temVirgula && temPonto) {
+    // O último separador é o decimal.
+    limpo =
+      limpo.lastIndexOf(",") > limpo.lastIndexOf(".")
+        ? limpo.replace(/\./g, "").replace(",", ".")
+        : limpo.replace(/,/g, "");
+  } else if (temVirgula) {
+    limpo = limpo.replace(/,(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  } else if (temPonto) {
+    limpo = limpo.replace(/\.(?=\d{3}(\D|$))/g, "");
+  }
   const n = Number(limpo);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) ? Math.abs(n) : null;
 }
 
 function normalizarChave(chave: string): string {
@@ -133,8 +152,14 @@ function extrairValor(linha: CelulaBruta[], idx: number | null): string {
 }
 
 function normalizarTelefone(valor: string): string {
-  const digitos = somenteDigitos(String(valor));
-  if (digitos.length === 13 && digitos.startsWith("55")) return digitos.slice(2);
+  let digitos = somenteDigitos(String(valor));
+  // Remove código do país (+55) quando presente.
+  if ((digitos.length === 12 || digitos.length === 13) && digitos.startsWith("55")) {
+    digitos = digitos.slice(2);
+  }
+  // Remove zero de operadora/DDD à esquerda.
+  while (digitos.length > 11 && digitos.startsWith("0")) digitos = digitos.slice(1);
+  if (digitos.length === 11 && digitos.startsWith("0")) digitos = digitos.slice(1);
   return digitos;
 }
 
@@ -144,36 +169,51 @@ function validarLinha(
   numeroLinha: number,
 ): LinhaPlanilha {
   const nome = extrairValor(linha, mapa.nome);
-  const telefone = normalizarTelefone(extrairValor(linha, mapa.telefone));
+  const telefoneBruto = extrairValor(linha, mapa.telefone);
+  const telefone = normalizarTelefone(telefoneBruto);
   const email = extrairValor(linha, mapa.email) || null;
-  const valorOriginal = parseMoeda(extrairValor(linha, mapa.valorOriginal));
-  const valorDesconto = parseMoeda(extrairValor(linha, mapa.valorDesconto));
+  const brutoOriginal = extrairValor(linha, mapa.valorOriginal);
+  const brutoDesconto = extrairValor(linha, mapa.valorDesconto);
+  const parsedOriginal = parseMoeda(brutoOriginal);
+  const parsedDesconto = parseMoeda(brutoDesconto);
   const statusBruto = extrairValor(linha, mapa.status);
   const status = parseStatus(statusBruto);
   const erros: string[] = [];
+  const avisos: string[] = [];
 
-  if (telefone.length < 10 || telefone.length > 11) erros.push("Telefone inválido (informe DDD + número).");
-  if (!nome) erros.push("Nome não informado.");
-  if (valorOriginal === null) erros.push("Valor em aberto inválido.");
-  if (valorDesconto === null) erros.push("Valor com desconto inválido.");
-
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    erros.push("E-mail inválido.");
+  if (!telefoneBruto) {
+    erros.push("Telefone não informado.");
+  } else if (telefone.length < 10 || telefone.length > 11) {
+    erros.push(`Telefone inválido ("${telefoneBruto}") — informe DDD + número.`);
   }
 
-  if (valorDesconto !== null && valorOriginal !== null && valorDesconto > valorOriginal) {
-    erros.push("Valor com desconto maior que o valor em aberto.");
+  if (brutoOriginal && parsedOriginal === null) erros.push(`Valor em aberto inválido ("${brutoOriginal}").`);
+  if (brutoDesconto && parsedDesconto === null) erros.push(`Valor com desconto inválido ("${brutoDesconto}").`);
+
+  const valorOriginal = parsedOriginal ?? 0;
+  const valorDesconto = parsedDesconto ?? 0;
+
+  if (!nome) avisos.push("Sem nome — será usado o telefone.");
+  if (!brutoOriginal) avisos.push("Valor em aberto vazio — considerado R$ 0,00.");
+  if (!brutoDesconto) avisos.push("Valor com desconto vazio — considerado R$ 0,00.");
+  if (valorOriginal === 0 && valorDesconto === 0) avisos.push("Fatura será criada com valor zero.");
+  if (statusBruto && !status) avisos.push(`Status "${statusBruto}" não reconhecido — usando "Em aberto".`);
+  if (valorDesconto > valorOriginal) avisos.push("Desconto maior que o valor em aberto — o maior será usado.");
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    avisos.push("E-mail inválido — não será importado.");
   }
 
   return {
     nome,
     telefone,
-    email,
+    email: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null,
     valorOriginal,
     valorDesconto,
     status,
     linha: numeroLinha,
     erros,
+    avisos,
   };
 }
 
@@ -212,12 +252,32 @@ export function ImportarClientesDialog({
   const linhas = useMemo<LinhaPlanilha[]>(() => {
     if (!mapa || !mapeamentoCompleto) return [];
     return brutas
-      .map((linha, idx) => validarLinha(linha, mapa, idx + 2))
-      .filter((l) => l.nome || l.telefone || l.email || l.valorOriginal !== null);
+      .filter((linha) => linha.some((c) => String(c ?? "").trim() !== ""))
+      .map((linha, idx) => validarLinha(linha, mapa, idx + 2));
   }, [brutas, mapa, mapeamentoCompleto]);
 
   const validas = linhas.filter((l) => l.erros.length === 0);
   const invalidas = linhas.filter((l) => l.erros.length > 0);
+  const comAviso = validas.filter((l) => l.avisos.length > 0);
+
+  function baixarRejeitadas() {
+    const dados = [
+      ["linha_da_planilha", "nome", "telefone", "valor_em_aberto", "valor_com_desconto", "motivo"],
+      ...invalidas.map((l) => [
+        l.linha,
+        l.nome,
+        l.telefone,
+        l.valorOriginal ?? "",
+        l.valorDesconto ?? "",
+        l.erros.join(" | "),
+      ]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Rejeitadas");
+    XLSX.writeFile(wb, "linhas-rejeitadas.xlsx");
+  }
+
 
   const importar = useMutation({
     mutationFn: async () => {
@@ -501,7 +561,7 @@ export function ImportarClientesDialog({
                 </div>
                 {!mapeamentoCompleto && (
                   <p className="text-xs text-destructive">
-                    Selecione as colunas de telefone, nome, valor em aberto e valor com desconto para continuar.
+                    Selecione as colunas de telefone, valor em aberto e valor com desconto para continuar.
                   </p>
                 )}
               </div>
@@ -510,16 +570,29 @@ export function ImportarClientesDialog({
 
           {linhas.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="size-4 text-green-600" />
-                <span>{validas.length} linhas válidas</span>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border bg-card p-3 text-sm">
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-green-600" />
+                  {validas.length.toLocaleString("pt-BR")} de {linhas.length.toLocaleString("pt-BR")} linhas serão
+                  importadas
+                </span>
+                {comAviso.length > 0 && (
+                  <span className="text-amber-600">{comAviso.length.toLocaleString("pt-BR")} com aviso</span>
+                )}
                 {invalidas.length > 0 && (
                   <>
-                    <AlertCircle className="ml-4 size-4 text-destructive" />
-                    <span className="text-destructive">{invalidas.length} linhas com erro</span>
+                    <span className="flex items-center gap-2 text-destructive">
+                      <AlertCircle className="size-4" />
+                      {invalidas.length.toLocaleString("pt-BR")} rejeitadas
+                    </span>
+                    <Button variant="outline" size="sm" onClick={baixarRejeitadas}>
+                      <Download className="mr-2 size-4" />
+                      Baixar linhas rejeitadas
+                    </Button>
                   </>
                 )}
               </div>
+
 
               <div className="max-h-64 overflow-auto rounded-xl border border-border">
                 <table className="w-full text-sm">
@@ -552,13 +625,17 @@ export function ImportarClientesDialog({
                         <td className="px-3 py-2">
                           {l.erros.length > 0 ? (
                             <span className="text-xs text-destructive" title={l.erros.join(" ")}>
-                              {l.erros[0]}
-                              {l.erros.length > 1 && ` (+${l.erros.length - 1})`}
+                              {l.erros.join(" ")}
+                            </span>
+                          ) : l.avisos.length > 0 ? (
+                            <span className="text-xs text-amber-600" title={l.avisos.join(" ")}>
+                              {l.avisos.join(" ")}
                             </span>
                           ) : (
                             <CheckCircle2 className="size-4 text-green-600" />
                           )}
                         </td>
+
                       </tr>
                     ))}
                   </tbody>
