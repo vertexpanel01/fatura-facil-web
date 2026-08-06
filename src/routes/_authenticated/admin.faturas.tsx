@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pencil, QrCode, Search, Upload } from "lucide-react";
+import { Pencil, QrCode, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { ImportarClientesDialog } from "@/components/importar-clientes";
 import { supabase } from "@/integrations/supabase/client";
+import { apagarTudo } from "@/lib/clientes.functions";
 import { STATUS_FATURA, formatarData, formatarMoeda, formatarTelefone, somenteDigitos } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/faturas")({
@@ -68,6 +70,27 @@ function PaginaFaturas() {
   const [pagina, setPagina] = useState(0);
   const [editando, setEditando] = useState<Fatura | null>(null);
   const [form, setForm] = useState(vazio);
+  const [confirmandoApagar, setConfirmandoApagar] = useState(false);
+  const [confirmacaoTexto, setConfirmacaoTexto] = useState("");
+  const executarApagarTudo = useServerFn(apagarTudo);
+
+  const apagarTodos = useMutation({
+    mutationFn: async () => executarApagarTudo({}),
+    onSuccess: (r) => {
+      toast.success(
+        `Base limpa: ${r.clientes} cliente(s), ${r.faturas} fatura(s) e ${r.pagamentos} pagamento(s) removidos.`,
+      );
+      setConfirmandoApagar(false);
+      setConfirmacaoTexto("");
+      setBusca("");
+      setPagina(0);
+      void queryClient.invalidateQueries({ queryKey: ["faturas-unificado"] });
+      void queryClient.invalidateQueries({ queryKey: ["pagamentos"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-metricas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const termo = busca.trim();
   const digitos = somenteDigitos(termo);
@@ -192,19 +215,83 @@ function PaginaFaturas() {
             Importe a planilha, pesquise por telefone ou nome e gerencie os valores em uma única tela.
           </p>
         </div>
-        <ImportarClientesDialog
-          onSuccess={() => {
-            setBusca("");
-            setPagina(0);
-            void queryClient.invalidateQueries({ queryKey: ["faturas-unificado"] });
-          }}
-        >
-          <Button size="lg" className="gap-2">
-            <Upload className="size-5" />
-            Importar Planilha
+        <div className="flex flex-wrap items-center gap-3">
+          <ImportarClientesDialog
+            onSuccess={() => {
+              setBusca("");
+              setPagina(0);
+              void queryClient.invalidateQueries({ queryKey: ["faturas-unificado"] });
+            }}
+          >
+            <Button size="lg" className="gap-2">
+              <Upload className="size-5" />
+              Importar Planilha
+            </Button>
+          </ImportarClientesDialog>
+          <Button
+            size="lg"
+            variant="destructive"
+            className="gap-2"
+            onClick={() => {
+              setConfirmacaoTexto("");
+              setConfirmandoApagar(true);
+            }}
+          >
+            <Trash2 className="size-5" />
+            Apagar tudo
           </Button>
-        </ImportarClientesDialog>
+        </div>
       </div>
+
+      <Dialog
+        open={confirmandoApagar}
+        onOpenChange={(aberto) => {
+          if (apagarTodos.isPending) return;
+          setConfirmandoApagar(aberto);
+          if (!aberto) setConfirmacaoTexto("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apagar todos os clientes e faturas?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Esta ação é <strong>irreversível</strong> e removerá <strong>todos os clientes, faturas e
+              pagamentos</strong> do banco de dados. Os registros de acessos (métricas) são mantidos.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="confirmar-apagar">
+                Para confirmar, digite <strong>APAGAR</strong>
+              </Label>
+              <Input
+                id="confirmar-apagar"
+                value={confirmacaoTexto}
+                onChange={(e) => setConfirmacaoTexto(e.target.value)}
+                placeholder="APAGAR"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmandoApagar(false)}
+              disabled={apagarTodos.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={confirmacaoTexto.trim().toUpperCase() !== "APAGAR" || apagarTodos.isPending}
+              onClick={() => apagarTodos.mutate()}
+            >
+              {apagarTodos.isPending ? "Apagando..." : "Apagar tudo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

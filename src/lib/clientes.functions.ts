@@ -215,3 +215,53 @@ export const importarClientes = createServerFn({ method: "POST" })
       rejeitados,
     };
   });
+
+/**
+ * Apaga TODA a base: pagamentos -> faturas -> clientes (ordem das FKs).
+ * Restrito a administradores. Não remove registros de acessos (métricas).
+ */
+export const apagarTudo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const { data: roleRow, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleError || !roleRow) {
+      throw new Error("Apenas administradores podem apagar todos os registros.");
+    }
+
+    const nunca = "00000000-0000-0000-0000-000000000000";
+
+    const { data: pagamentos, error: erroPag } = await supabase
+      .from("pagamentos")
+      .delete()
+      .neq("id", nunca)
+      .select("id");
+    if (erroPag) throw new Error(`Erro ao apagar pagamentos: ${erroPag.message}`);
+
+    const { data: faturas, error: erroFat } = await supabase
+      .from("faturas")
+      .delete()
+      .neq("id", nunca)
+      .select("id");
+    if (erroFat) throw new Error(`Erro ao apagar faturas: ${erroFat.message}`);
+
+    const { data: clientes, error: erroCli } = await supabase
+      .from("clientes")
+      .delete()
+      .neq("id", nunca)
+      .select("id");
+    if (erroCli) throw new Error(`Erro ao apagar clientes: ${erroCli.message}`);
+
+    return {
+      pagamentos: pagamentos?.length ?? 0,
+      faturas: faturas?.length ?? 0,
+      clientes: clientes?.length ?? 0,
+    };
+  });
