@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { ImportarClientesDialog } from "@/components/importar-clientes";
 import { formatarTelefone, somenteDigitos } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/clientes")({
@@ -127,13 +128,20 @@ function PaginaClientes() {
           <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
           <p className="text-sm text-muted-foreground">Cadastre, edite e pesquise clientes pelo telefone.</p>
         </div>
-        <Dialog open={aberto} onOpenChange={setAberto}>
-          <DialogTrigger asChild>
-            <Button onClick={abrirNovo}>
-              <Plus className="size-4" />
-              Novo cliente
+        <div className="flex flex-wrap gap-2">
+          <ImportarClientesDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ["clientes"] })}>
+            <Button variant="outline">
+              <Upload className="size-4" />
+              Importar planilha
             </Button>
-          </DialogTrigger>
+          </ImportarClientesDialog>
+          <Dialog open={aberto} onOpenChange={setAberto}>
+            <DialogTrigger asChild>
+              <Button onClick={abrirNovo}>
+                <Plus className="size-4" />
+                Novo cliente
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editando ? "Editar cliente" : "Novo cliente"}</DialogTitle>
@@ -178,6 +186,7 @@ function PaginaClientes() {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

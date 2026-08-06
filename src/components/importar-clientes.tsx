@@ -1,0 +1,349 @@
+import { useMutation } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2, X } from "lucide-react";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { importarClientes } from "@/lib/clientes.functions";
+import { somenteDigitos, formatarTelefone } from "@/lib/format";
+
+type LinhaPlanilha = {
+  nome: string;
+  telefone: string;
+  email: string | null;
+  documento: string | null;
+  observacoes: string | null;
+  linha: number;
+  erros: string[];
+};
+
+const COLUNAS_ESPERADAS = [
+  { chaves: ["nome", "name", "cliente"], campo: "nome" as const },
+  { chaves: ["telefone", "tel", "celular", "phone", "whatsapp"], campo: "telefone" as const },
+  { chaves: ["email", "e-mail", "mail"], campo: "email" as const },
+  { chaves: ["documento", "cpf", "cnpj", "cpf/cnpj", "doc"], campo: "documento" as const },
+  { chaves: ["observacoes", "observações", "obs", "notas"], campo: "observacoes" as const },
+];
+
+function normalizarChave(chave: string): string {
+  return chave
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function mapearColunas(cabecalhos: string[]): Record<string, number> {
+  const mapa: Record<string, number> = {};
+  for (const col of COLUNAS_ESPERADAS) {
+    const idx = cabecalhos.findIndex((h) => col.chaves.includes(normalizarChave(h)));
+    if (idx >= 0) mapa[col.campo] = idx;
+  }
+  return mapa;
+}
+
+function extrairValor(linha: (string | number | null | undefined)[], idx: number | undefined): string {
+  if (idx === undefined) return "";
+  const val = linha[idx];
+  if (val === null || val === undefined) return "";
+  return String(val).trim();
+}
+
+function normalizarTelefone(valor: string): string {
+  const digitos = somenteDigitos(String(valor));
+  if (digitos.length === 11 && digitos.startsWith("55")) return digitos.slice(2);
+  return digitos;
+}
+
+function validarLinha(
+  linha: (string | number | null | undefined)[],
+  mapa: Record<string, number>,
+  numeroLinha: number,
+): LinhaPlanilha {
+  const nome = extrairValor(linha, mapa["nome"]);
+  const telefone = normalizarTelefone(extrairValor(linha, mapa["telefone"]));
+  const email = extrairValor(linha, mapa["email"]) || null;
+  const documento = extrairValor(linha, mapa["documento"]) || null;
+  const observacoes = extrairValor(linha, mapa["observacoes"]) || null;
+  const erros: string[] = [];
+
+  if (!nome) erros.push("Nome é obrigatório.");
+  if (telefone.length < 10 || telefone.length > 11) erros.push("Telefone inválido (informe DDD + número).");
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    erros.push("E-mail inválido.");
+  }
+
+  return { nome, telefone, email, documento, observacoes, linha: numeroLinha, erros };
+}
+
+export function gerarModeloPlanilha() {
+  const dados = [
+    ["Nome", "Telefone", "Email", "CPF/CNPJ", "Observacoes"],
+    ["Maria Silva", "11999999999", "maria@email.com", "12345678900", "Cliente ativo"],
+    ["Joao Souza", "21988888888", "joao@email.com", "", ""],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(dados);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Clientes");
+  XLSX.writeFile(wb, "modelo-clientes.xlsx");
+}
+
+export function ImportarClientesDialog({
+  onSuccess,
+  children,
+}: {
+  onSuccess: () => void;
+  children: React.ReactNode;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [linhas, setLinhas] = useState<LinhaPlanilha[]>([]);
+  const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
+  const [carregandoLeitura, setCarregandoLeitura] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const importar = useMutation({
+    mutationFn: async () => {
+      const validas = linhas.filter((l) => l.erros.length === 0);
+      if (!validas.length) throw new Error("Nenhuma linha válida para importar.");
+      const clientes = validas.map((l) => ({
+        nome: l.nome,
+        telefone: l.telefone,
+        email: l.email,
+        documento: l.documento,
+        observacoes: l.observacoes,
+      }));
+      return importarClientes({ data: { clientes } });
+    },
+    onSuccess: (res) => {
+      toast.success(`${res.importados} clientes importados com sucesso.`);
+      setLinhas([]);
+      setNomeArquivo(null);
+      setAberto(false);
+      onSuccess();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function processarArquivo(file: File) {
+    setCarregandoLeitura(true);
+    setNomeArquivo(file.name);
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          toast.error("Nenhuma aba encontrada na planilha.");
+          setLinhas([]);
+          setCarregandoLeitura(false);
+          return;
+        }
+        const sheet = workbook.Sheets[firstSheetName];
+        if (!sheet) {
+          toast.error("Não foi possível ler a aba da planilha.");
+          setLinhas([]);
+          setCarregandoLeitura(false);
+          return;
+        }
+        const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false }) as (
+          | string
+          | number
+          | null
+          | undefined
+        )[][];
+
+        if (raw.length < 2) {
+          toast.error("A planilha deve conter pelo menos uma linha de cabeçalho e uma linha de dados.");
+          setLinhas([]);
+          setCarregandoLeitura(false);
+          return;
+        }
+
+        const firstRow = raw[0];
+        if (!firstRow) {
+          toast.error("Cabeçalho da planilha está vazio.");
+          setLinhas([]);
+          setCarregandoLeitura(false);
+          return;
+        }
+        const cabecalhos = firstRow.map((h) => String(h ?? ""));
+        const mapa = mapearColunas(cabecalhos);
+
+        if (mapa["nome"] === undefined || mapa["telefone"] === undefined) {
+          toast.error("Colunas obrigatórias não encontradas: Nome e Telefone.");
+          setLinhas([]);
+          setCarregandoLeitura(false);
+          return;
+        }
+
+        const processadas = raw
+          .slice(1)
+          .map((linha, idx) => validarLinha(linha, mapa, idx + 2))
+          .filter((l) => l.nome || l.telefone || l.email || l.documento || l.observacoes);
+
+        setLinhas(processadas);
+      } catch (err) {
+        toast.error("Erro ao ler planilha. Verifique o formato e tente novamente.");
+      } finally {
+        setCarregandoLeitura(false);
+      }
+    };
+
+    reader.onerror = () => {
+      toast.error("Não foi possível ler o arquivo.");
+      setCarregandoLeitura(false);
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  function limpar() {
+    setLinhas([]);
+    setNomeArquivo(null);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  const validas = linhas.filter((l) => l.erros.length === 0);
+  const invalidas = linhas.filter((l) => l.erros.length > 0);
+
+  return (
+    <Dialog open={aberto} onOpenChange={setAberto}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Importar clientes</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" size="sm" onClick={gerarModeloPlanilha}>
+              <Download className="mr-2 size-4" />
+              Baixar modelo
+            </Button>
+            <p className="text-xs text-muted-foreground">Arquivos .xlsx ou .csv com as colunas Nome, Telefone, Email, CPF/CNPJ e Observações.</p>
+          </div>
+
+          <div
+            className="rounded-2xl border-2 border-dashed border-border bg-muted/40 p-8 text-center transition-colors hover:bg-muted/60"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const file = e.dataTransfer.files[0];
+              if (file) processarArquivo(file);
+            }}
+          >
+            <FileSpreadsheet className="mx-auto size-8 text-muted-foreground" />
+            <p className="mt-3 text-sm font-medium text-foreground">
+              Arraste uma planilha ou clique para selecionar
+            </p>
+            <p className="text-xs text-muted-foreground">.xlsx, .csv</p>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".xlsx,.csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) processarArquivo(file);
+              }}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-4"
+              onClick={() => inputRef.current?.click()}
+              disabled={carregandoLeitura}
+            >
+              <Upload className="mr-2 size-4" />
+              Selecionar arquivo
+            </Button>
+          </div>
+
+          {nomeArquivo && (
+            <div className="flex items-center justify-between rounded-xl border border-border bg-card p-3 text-sm">
+              <span className="truncate pr-4">{nomeArquivo}</span>
+              <button onClick={limpar} className="text-muted-foreground hover:text-foreground">
+                <X className="size-4" />
+              </button>
+            </div>
+          )}
+
+          {linhas.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle2 className="size-4 text-green-600" />
+                <span>{validas.length} linhas válidas</span>
+                {invalidas.length > 0 && (
+                  <>
+                    <AlertCircle className="ml-4 size-4 text-destructive" />
+                    <span className="text-destructive">{invalidas.length} linhas com erro</span>
+                  </>
+                )}
+              </div>
+
+              <div className="max-h-64 overflow-auto rounded-xl border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted text-left text-xs font-medium uppercase text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2">Nome</th>
+                      <th className="px-3 py-2">Telefone</th>
+                      <th className="px-3 py-2">Email</th>
+                      <th className="px-3 py-2">Documento</th>
+                      <th className="px-3 py-2">Observações</th>
+                      <th className="px-3 py-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {linhas.slice(0, 50).map((l, idx) => (
+                      <tr key={idx} className={l.erros.length > 0 ? "bg-destructive/10" : ""}>
+                        <td className="px-3 py-2">{l.nome}</td>
+                        <td className="px-3 py-2">{formatarTelefone(l.telefone)}</td>
+                        <td className="px-3 py-2">{l.email || "—"}</td>
+                        <td className="px-3 py-2">{l.documento || "—"}</td>
+                        <td className="px-3 py-2">{l.observacoes || "—"}</td>
+                        <td className="px-3 py-2">
+                          {l.erros.length > 0 ? (
+                            <span className="text-xs text-destructive" title={l.erros.join(" ")}>
+                              {l.erros[0]}
+                              {l.erros.length > 1 && ` (+${l.erros.length - 1})`}
+                            </span>
+                          ) : (
+                            <CheckCircle2 className="size-4 text-green-600" />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {linhas.length > 50 && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">
+                    Exibindo 50 de {linhas.length} registros. Todas as linhas válidas serão importadas.
+                  </p>
+                )}
+              </div>
+
+              <Button
+                className="w-full"
+                disabled={!validas.length || importar.isPending}
+                onClick={() => importar.mutate()}
+              >
+                {importar.isPending ? "Importando..." : `Importar ${validas.length} clientes`}
+              </Button>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
