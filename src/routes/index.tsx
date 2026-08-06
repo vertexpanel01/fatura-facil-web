@@ -154,18 +154,18 @@ function PaginaConsulta() {
               }}
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-primary-foreground underline underline-offset-4">
-                Consulta pelo CPF
+                Consulta pelo telefone
               </p>
-              <label htmlFor="cpf" className="sr-only">
-                Digite seu CPF
+              <label htmlFor="telefone" className="sr-only">
+                Digite seu telefone
               </label>
               <Input
-                id="cpf"
+                id="telefone"
                 inputMode="numeric"
                 autoComplete="off"
-                placeholder="Digite seu CPF"
-                value={cpf}
-                onChange={(e) => setCpf(formatarCpf(e.target.value))}
+                placeholder="Digite seu número de celular"
+                value={telefone}
+                onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
                 className="mt-4 h-14 rounded-full border-0 bg-card px-6 text-base shadow-card"
               />
 
