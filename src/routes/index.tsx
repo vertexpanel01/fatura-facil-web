@@ -26,16 +26,16 @@ import { formatarTelefone, somenteDigitos } from "@/lib/format";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Negocia Fácil — Consulte e pague sua fatura pelo telefone" },
+      { title: "Fatura Móvel — Consulte e pague sua fatura pelo CPF" },
       {
         name: "description",
         content:
-          "Consulte sua fatura pelo número de telefone, veja o valor com desconto, o vencimento e pague na hora. Consulta grátis, segura e 100% online.",
+          "Consulte sua fatura pelo CPF, veja o valor com desconto, o vencimento e pague na hora. Consulta grátis, segura e 100% online.",
       },
-      { property: "og:title", content: "Negocia Fácil — Consulta de faturas por telefone" },
+      { property: "og:title", content: "Fatura Móvel — Consulta de faturas por CPF" },
       {
         property: "og:description",
-        content: "Digite seu telefone e veja sua fatura: valor original, valor com desconto, vencimento e status.",
+        content: "Digite seu CPF e veja sua fatura: valor original, valor com desconto, vencimento e status.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
