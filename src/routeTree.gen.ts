@@ -20,6 +20,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminFaturasRouteImport } from './routes/_authenticated/admin.faturas'
 import { Route as AuthenticatedAdminPagamentosRouteImport } from './routes/_authenticated/admin.pagamentos'
+import { Route as ApiPublicFaturasRouteImport } from './routes/api/public/faturas'
 import { Route as ApiPublicPixWebhookRouteImport } from './routes/api/public/pix-webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -79,6 +80,11 @@ const AuthenticatedAdminPagamentosRoute =
     path: '/pagamentos',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const ApiPublicFaturasRoute = ApiPublicFaturasRouteImport.update({
+  id: '/api/public/faturas',
+  path: '/api/public/faturas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPixWebhookRoute = ApiPublicPixWebhookRouteImport.update({
   id: '/api/public/pix-webhook',
   path: '/api/public/pix-webhook',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
+  '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
+  '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/_authenticated/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
+  '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/pagamentos'
+    | '/api/public/faturas'
     | '/api/public/pix-webhook'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/pagamentos'
+    | '/api/public/faturas'
     | '/api/public/pix-webhook'
     | '/admin'
   id:
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/faturas'
     | '/_authenticated/admin/pagamentos'
+    | '/api/public/faturas'
     | '/api/public/pix-webhook'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
@@ -174,6 +186,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   FaturaTelefoneRoute: typeof FaturaTelefoneRoute
+  ApiPublicFaturasRoute: typeof ApiPublicFaturasRoute
   ApiPublicPixWebhookRoute: typeof ApiPublicPixWebhookRoute
 }
 
@@ -256,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPagamentosRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/api/public/faturas': {
+      id: '/api/public/faturas'
+      path: '/api/public/faturas'
+      fullPath: '/api/public/faturas'
+      preLoaderRoute: typeof ApiPublicFaturasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/pix-webhook': {
       id: '/api/public/pix-webhook'
       path: '/api/public/pix-webhook'
@@ -301,6 +321,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   FaturaTelefoneRoute: FaturaTelefoneRoute,
+  ApiPublicFaturasRoute: ApiPublicFaturasRoute,
   ApiPublicPixWebhookRoute: ApiPublicPixWebhookRoute,
 }
 export const routeTree = rootRouteImport
