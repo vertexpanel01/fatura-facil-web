@@ -180,6 +180,7 @@ export function ImportarClientesDialog({
     mutationFn: async () => {
       const validas = linhas.filter((l) => l.erros.length === 0);
       if (!validas.length) throw new Error("Nenhuma linha válida para importar.");
+      if (!vencimentoGlobal) throw new Error("Escolha a data de vencimento das faturas.");
       const clientes = validas.map((l) => ({
         nome: l.nome,
         telefone: l.telefone,
@@ -190,7 +191,9 @@ export function ImportarClientesDialog({
         valor_desconto: l.valorDesconto,
         vencimento: l.vencimento,
       }));
-      return importarClientes({ data: { clientes } });
+      return importarClientes({
+        data: { clientes, vencimento_global: format(vencimentoGlobal, "yyyy-MM-dd") },
+      });
     },
     onSuccess: (res) => {
       const partes = [`${res.importados} clientes importados`];
