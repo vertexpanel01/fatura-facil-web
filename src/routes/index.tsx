@@ -136,10 +136,10 @@ function PaginaConsulta() {
 
               <div className="max-w-md text-primary-foreground drop-shadow-lg lg:ml-auto">
                 <h1 className="text-2xl font-extrabold uppercase leading-tight sm:text-4xl">
-                  Negocia fácil: é o mês todo com até 70% de desconto!
+                  Fatura Móvel
                 </h1>
                 <p className="mt-4 text-base leading-relaxed sm:text-lg">
-                  Confira as ofertas e melhores condições de renegociação. Consulta grátis e segura.
+                  Aproveite descontos imperdíveis. Consulta grátis e segura.
                 </p>
               </div>
             </div>
