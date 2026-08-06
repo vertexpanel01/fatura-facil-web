@@ -14,16 +14,211 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          created_at: string
+          documento: string | null
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          documento?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      faturas: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          descricao: string
+          id: string
+          pix_copia_cola: string | null
+          pix_txid: string | null
+          referencia: string | null
+          status: Database["public"]["Enums"]["fatura_status"]
+          updated_at: string
+          valor_desconto: number
+          valor_original: number
+          vencimento: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          pix_copia_cola?: string | null
+          pix_txid?: string | null
+          referencia?: string | null
+          status?: Database["public"]["Enums"]["fatura_status"]
+          updated_at?: string
+          valor_desconto?: number
+          valor_original?: number
+          vencimento: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          pix_copia_cola?: string | null
+          pix_txid?: string | null
+          referencia?: string | null
+          status?: Database["public"]["Enums"]["fatura_status"]
+          updated_at?: string
+          valor_desconto?: number
+          valor_original?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          fatura_id: string
+          gateway: string | null
+          gateway_payment_id: string | null
+          id: string
+          metodo: string
+          pago_em: string | null
+          status: Database["public"]["Enums"]["pagamento_status"]
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          fatura_id: string
+          gateway?: string | null
+          gateway_payment_id?: string | null
+          id?: string
+          metodo?: string
+          pago_em?: string | null
+          status?: Database["public"]["Enums"]["pagamento_status"]
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          fatura_id?: string
+          gateway?: string | null
+          gateway_payment_id?: string | null
+          id?: string
+          metodo?: string
+          pago_em?: string | null
+          status?: Database["public"]["Enums"]["pagamento_status"]
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string
+          id: string
+          nome?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      fatura_status: "em_aberto" | "paga" | "vencida" | "cancelada"
+      pagamento_status: "pendente" | "confirmado" | "falhou" | "estornado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +345,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      fatura_status: ["em_aberto", "paga", "vencida", "cancelada"],
+      pagamento_status: ["pendente", "confirmado", "falhou", "estornado"],
+    },
   },
 } as const
