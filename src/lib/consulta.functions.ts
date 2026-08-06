@@ -71,38 +71,90 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 
 const pagamentoSchema = z.object({ fatura_id: z.string().uuid() });
 
+export type PixGerado = {
+  valor: number;
+  copia_cola: string;
+  txid: string;
+  status: string;
+};
+
 /**
- * Ponto de integração futura com gateway PIX.
- * Registra a intenção de pagamento e devolve os dados do PIX quando existirem.
+ * Gera (ou reaproveita) a cobrança PIX da fatura.
+ * O valor enviado é SEMPRE o valor com desconto.
  */
-export const iniciarPagamentoPix = createServerFn({ method: "POST" })
+export const gerarPixFatura = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => pagamentoSchema.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<PixGerado> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { gerarBrCode, novoTxid } = await import("@/lib/pix.server");
 
     const { data: fatura, error } = await supabaseAdmin
       .from("faturas")
-      .select("id, cliente_id, valor_original, valor_desconto, status, pix_copia_cola")
+      .select("id, cliente_id, valor_original, valor_desconto, status, pix_txid, pix_copia_cola")
       .eq("id", data.fatura_id)
       .maybeSingle();
 
     if (error || !fatura) throw new Error("Fatura não encontrada.");
-    if (fatura.status === "paga") throw new Error("Esta fatura já está paga.");
+    if (fatura.status === "paga") {
+      return { valor: 0, copia_cola: "", txid: fatura.pix_txid ?? "", status: "paga" };
+    }
 
     const valor = Number(fatura.valor_desconto) || Number(fatura.valor_original);
 
-    await supabaseAdmin.from("pagamentos").insert({
-      fatura_id: fatura.id,
-      cliente_id: fatura.cliente_id,
-      valor,
-      metodo: "pix",
-      status: "pendente",
-      gateway: "pendente_integracao",
-    });
+    let txid = fatura.pix_txid ?? "";
+    let copiaCola = fatura.pix_copia_cola ?? "";
 
-    return {
-      valor,
-      pix_copia_cola: fatura.pix_copia_cola,
-      integrado: Boolean(fatura.pix_copia_cola),
-    };
+    if (!txid || !copiaCola) {
+      txid = novoTxid();
+      copiaCola = gerarBrCode({
+        chave: process.env["PIX_CHAVE"] ?? "pagamentos@negociafacil.com.br",
+        valor,
+        nome: process.env["PIX_RECEBEDOR"] ?? "NEGOCIA FACIL",
+        cidade: process.env["PIX_CIDADE"] ?? "SAO PAULO",
+        txid,
+      });
+
+      await supabaseAdmin
+        .from("faturas")
+        .update({ pix_txid: txid, pix_copia_cola: copiaCola })
+        .eq("id", fatura.id);
+    }
+
+    const { data: existente } = await supabaseAdmin
+      .from("pagamentos")
+      .select("id")
+      .eq("fatura_id", fatura.id)
+      .eq("status", "pendente")
+      .limit(1);
+
+    if (!existente?.length) {
+      await supabaseAdmin.from("pagamentos").insert({
+        fatura_id: fatura.id,
+        cliente_id: fatura.cliente_id,
+        valor,
+        metodo: "pix",
+        status: "pendente",
+        gateway: "pix",
+        gateway_payment_id: txid,
+      });
+    }
+
+    return { valor, copia_cola: copiaCola, txid, status: fatura.status as string };
   });
+
+/**
+ * Consulta leve usada pelo polling da tela — devolve o status atual da fatura
+ * para atualizar a interface sem recarregar a página.
+ */
+export const consultarStatusFatura = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => pagamentoSchema.parse(data))
+  .handler(async ({ data }): Promise<{ status: string }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: fatura } = await supabaseAdmin
+      .from("faturas")
+      .select("status")
+      .eq("id", data.fatura_id)
+      .maybeSingle();
+    return { status: (fatura?.status as string) ?? "em_aberto" };
+  });
+
