@@ -134,15 +134,18 @@ export const importarClientes = createServerFn({ method: "POST" })
       if (!faturaPorCliente.has(f.cliente_id)) faturaPorCliente.set(f.cliente_id, f.id);
     }
 
-    let faturasAtualizadas = 0;
-    const novas: {
+    type FaturaLinha = {
+      id?: string;
       cliente_id: string;
       descricao: string;
       valor_original: number;
       valor_desconto: number;
       vencimento: string;
       status: (typeof STATUS_VALIDOS)[number];
-    }[] = [];
+    };
+
+    const existentes: FaturaLinha[] = [];
+    const novas: FaturaLinha[] = [];
 
     for (const r of registros) {
       const clienteId = idPorTelefone.get(r.telefone);
@@ -151,36 +154,51 @@ export const importarClientes = createServerFn({ method: "POST" })
         continue;
       }
       const faturaId = faturaPorCliente.get(clienteId);
-      if (faturaId) {
-        const { error } = await supabase
-          .from("faturas")
-          .update({
-            valor_original: r.valor_original,
-            valor_desconto: r.valor_desconto,
-            vencimento: data.vencimento_global,
-            status: r.status,
-          })
-          .eq("id", faturaId);
-        if (error) throw new Error(`Erro ao atualizar fatura: ${error.message}`);
-        faturasAtualizadas += 1;
-      } else {
-        novas.push({
-          cliente_id: clienteId,
-          descricao: "Fatura importada",
-          valor_original: r.valor_original,
-          valor_desconto: r.valor_desconto,
-          vencimento: data.vencimento_global,
-          status: r.status,
+      const linha: FaturaLinha = {
+        cliente_id: clienteId,
+        descricao: "Fatura importada",
+        valor_original: r.valor_original,
+        valor_desconto: r.valor_desconto,
+        vencimento: data.vencimento_global,
+        status: r.status,
+      };
+      if (faturaId) existentes.push({ ...linha, id: faturaId });
+      else novas.push(linha);
+    }
+
+    // Atualiza TODAS as faturas existentes em uma única chamada (evita centenas
+    // de round-trips por lote, que estouravam o tempo limite do servidor).
+    let faturasAtualizadas = 0;
+    if (existentes.length) {
+      const { data: atualizadas, error } = await supabase
+        .from("faturas")
+        .upsert(existentes, { onConflict: "id" })
+        .select("id");
+      if (error) {
+        console.error("[importarClientes] falha ao atualizar faturas", {
+          quantidade: existentes.length,
+          erro: error.message,
+          detalhe: error.details,
         });
+        throw new Error(`Erro ao atualizar faturas: ${error.message}`);
       }
+      faturasAtualizadas = atualizadas?.length ?? 0;
     }
 
     let faturasCriadas = 0;
     if (novas.length) {
       const { data: criadas, error } = await supabase.from("faturas").insert(novas).select("id");
-      if (error) throw new Error(`Erro ao criar faturas: ${error.message}`);
+      if (error) {
+        console.error("[importarClientes] falha ao criar faturas", {
+          quantidade: novas.length,
+          erro: error.message,
+          detalhe: error.details,
+        });
+        throw new Error(`Erro ao criar faturas: ${error.message}`);
+      }
       faturasCriadas = criadas?.length ?? 0;
     }
+
 
     return {
       importados: clientesSalvos?.length ?? 0,
