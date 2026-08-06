@@ -128,13 +128,20 @@ function PaginaClientes() {
           <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
           <p className="text-sm text-muted-foreground">Cadastre, edite e pesquise clientes pelo telefone.</p>
         </div>
-        <Dialog open={aberto} onOpenChange={setAberto}>
-          <DialogTrigger asChild>
-            <Button onClick={abrirNovo}>
-              <Plus className="size-4" />
-              Novo cliente
+        <div className="flex flex-wrap gap-2">
+          <ImportarClientesDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: ["clientes"] })}>
+            <Button variant="outline">
+              <Upload className="size-4" />
+              Importar planilha
             </Button>
-          </DialogTrigger>
+          </ImportarClientesDialog>
+          <Dialog open={aberto} onOpenChange={setAberto}>
+            <DialogTrigger asChild>
+              <Button onClick={abrirNovo}>
+                <Plus className="size-4" />
+                Novo cliente
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editando ? "Editar cliente" : "Novo cliente"}</DialogTitle>
