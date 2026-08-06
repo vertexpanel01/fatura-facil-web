@@ -329,7 +329,7 @@ export function ImportarClientesDialog({
               <Download className="mr-2 size-4" />
               Baixar modelo
             </Button>
-            <p className="text-xs text-muted-foreground">Arquivos .xlsx ou .csv com as colunas Nome, Telefone, Valor em aberto, Valor com desconto, Vencimento, Email, CPF/CNPJ e Observações.</p>
+            <p className="text-xs text-muted-foreground">Arquivos .xlsx, .xls ou .csv. Colunas reconhecidas automaticamente: <strong>telefone</strong>, <strong>valor_em_aberto</strong> e <strong>valor_com_desconto</strong> (nome, e-mail, CPF/CNPJ e observações são opcionais).</p>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-4">
