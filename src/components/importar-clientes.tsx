@@ -560,7 +560,7 @@ export function ImportarClientesDialog({
                 </div>
                 {!mapeamentoCompleto && (
                   <p className="text-xs text-destructive">
-                    Selecione as colunas de telefone, nome, valor em aberto e valor com desconto para continuar.
+                    Selecione as colunas de telefone, valor em aberto e valor com desconto para continuar.
                   </p>
                 )}
               </div>
@@ -569,16 +569,29 @@ export function ImportarClientesDialog({
 
           {linhas.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="size-4 text-green-600" />
-                <span>{validas.length} linhas válidas</span>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border bg-card p-3 text-sm">
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-green-600" />
+                  {validas.length.toLocaleString("pt-BR")} de {linhas.length.toLocaleString("pt-BR")} linhas serão
+                  importadas
+                </span>
+                {comAviso.length > 0 && (
+                  <span className="text-amber-600">{comAviso.length.toLocaleString("pt-BR")} com aviso</span>
+                )}
                 {invalidas.length > 0 && (
                   <>
-                    <AlertCircle className="ml-4 size-4 text-destructive" />
-                    <span className="text-destructive">{invalidas.length} linhas com erro</span>
+                    <span className="flex items-center gap-2 text-destructive">
+                      <AlertCircle className="size-4" />
+                      {invalidas.length.toLocaleString("pt-BR")} rejeitadas
+                    </span>
+                    <Button variant="outline" size="sm" onClick={baixarRejeitadas}>
+                      <Download className="mr-2 size-4" />
+                      Baixar linhas rejeitadas
+                    </Button>
                   </>
                 )}
               </div>
+
 
               <div className="max-h-64 overflow-auto rounded-xl border border-border">
                 <table className="w-full text-sm">
