@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { confirmarPagamentoPix, consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
 import type { FaturaPublica } from "@/lib/consulta.functions";
 import {
-  formatarCpf,
   formatarData,
   formatarMoeda,
+  formatarTelefone,
   MENSAGEM_STATUS,
   STATUS_FATURA,
   STATUS_PAGAVEIS,
