@@ -1,10 +1,12 @@
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Zap } from "lucide-react";
+import { CheckCircle2, Copy, Loader2, QrCode, ShieldCheck } from "lucide-react";
+import QRCode from "qrcode";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { iniciarPagamentoPix } from "@/lib/consulta.functions";
+import { consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
 import type { FaturaPublica } from "@/lib/consulta.functions";
 import { formatarData, formatarMoeda, formatarTelefone } from "@/lib/format";
 
@@ -69,63 +71,147 @@ export function CardFatura({
   nome: string;
   telefone: string;
 }) {
-  const pagar = useServerFn(iniciarPagamentoPix);
-  const mutation = useMutation({
-    mutationFn: () => pagar({ data: { fatura_id: fatura.id } }),
-    onSuccess: (res) => {
-      if (res.integrado && res.pix_copia_cola) {
-        void navigator.clipboard?.writeText(res.pix_copia_cola);
-        toast.success("Código PIX copiado!", { description: "Cole no app do seu banco para pagar." });
-      } else {
-        toast.info("Pagamento registrado", {
-          description:
-            "O gateway PIX ainda será integrado. Sua solicitação de pagamento foi registrada para o atendimento.",
-        });
-      }
-    },
-    onError: (e: Error) => toast.error(e.message),
+  const gerarPix = useServerFn(gerarPixFatura);
+  const verStatus = useServerFn(consultarStatusFatura);
+
+  const [status, setStatus] = useState<string>(fatura.status);
+  const [qr, setQr] = useState<string | null>(null);
+
+  const valorPagar = useMemo(
+    () => (fatura.valor_desconto > 0 ? fatura.valor_desconto : fatura.valor_original),
+    [fatura.valor_desconto, fatura.valor_original],
+  );
+  const economia = fatura.valor_original - valorPagar;
+  const paga = status === "paga";
+
+  // Gera o PIX automaticamente ao abrir a fatura (menos um passo para o cliente).
+  const pix = useQuery({
+    queryKey: ["pix", fatura.id],
+    queryFn: () => gerarPix({ data: { fatura_id: fatura.id } }),
+    enabled: !paga,
+    staleTime: Infinity,
+    retry: false,
   });
 
-  const desconto = fatura.valor_desconto > 0 ? fatura.valor_desconto : fatura.valor_original;
-  const economia = fatura.valor_original - desconto;
+  // Polling: confirma o pagamento no gateway e atualiza a tela sem recarregar.
+  useQuery({
+    queryKey: ["status-fatura", fatura.id],
+    queryFn: async () => {
+      const r = await verStatus({ data: { fatura_id: fatura.id } });
+      setStatus(r.status);
+      return r;
+    },
+    enabled: !paga && Boolean(pix.data?.copia_cola),
+    refetchInterval: 5000,
+  });
+
+  const copiaCola = pix.data?.copia_cola ?? "";
+
+  useEffect(() => {
+    if (!copiaCola) return;
+    void QRCode.toDataURL(copiaCola, { width: 480, margin: 1 }).then(setQr).catch(() => setQr(null));
+  }, [copiaCola]);
+
+  const copiar = useMutation({
+    mutationFn: async () => {
+      await navigator.clipboard.writeText(copiaCola);
+    },
+    onSuccess: () => toast.success("Código PIX copiado!", { description: "Cole no app do seu banco." }),
+    onError: () => toast.error("Não foi possível copiar. Selecione o código manualmente."),
+  });
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/60 px-5 py-4">
-        <div>
+    <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border bg-secondary/60 px-5 py-4">
+        <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
-          <p className="text-base font-semibold text-foreground">{nome}</p>
+          <p className="truncate text-base font-semibold text-foreground">{nome}</p>
+          <p className="text-sm text-muted-foreground">{formatarTelefone(telefone)}</p>
         </div>
-        <StatusBadge status={fatura.status} />
+        <StatusBadge status={status} />
       </div>
 
-      <dl className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2">
-        <Campo rotulo="Telefone" valor={formatarTelefone(telefone)} />
-        <Campo rotulo="Vencimento" valor={formatarData(fatura.vencimento)} />
-        <Campo rotulo="Valor total da fatura" valor={formatarMoeda(fatura.valor_original)} riscado />
-        <Campo rotulo="Valor com desconto à vista" valor={formatarMoeda(desconto)} destaque />
-      </dl>
-
-      <div className="space-y-4 px-5 py-5">
-        <p className="text-sm text-muted-foreground">
+      <div className="px-5 pb-1 pt-6">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {fatura.descricao}
           {fatura.referencia ? ` · ${fatura.referencia}` : ""}
-          {economia > 0 ? ` · economia de ${formatarMoeda(economia)}` : ""}
         </p>
-        {fatura.status !== "paga" ? (
-          <Button
-            size="lg"
-            className="h-14 w-full rounded-full bg-cta text-base font-bold text-cta-foreground hover:bg-cta/90"
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
-          >
-            {mutation.isPending ? <Loader2 className="size-5 animate-spin" /> : <Zap className="size-5" />}
-            Pagar Agora
-          </Button>
+        <p className="mt-2 text-4xl font-black tracking-tight text-foreground">{formatarMoeda(valorPagar)}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          {economia > 0 ? (
+            <>
+              <span className="text-muted-foreground line-through">{formatarMoeda(fatura.valor_original)}</span>
+              <span className="rounded-full bg-success/12 px-2.5 py-0.5 text-xs font-semibold text-success">
+                economia de {formatarMoeda(economia)}
+              </span>
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      <dl className="mt-6 grid grid-cols-1 gap-px bg-border sm:grid-cols-2">
+        <Campo rotulo="Valor original" valor={formatarMoeda(fatura.valor_original)} riscado />
+        <Campo rotulo="Valor com desconto à vista" valor={formatarMoeda(valorPagar)} destaque />
+        <Campo rotulo="Vencimento" valor={formatarData(fatura.vencimento)} />
+        <Campo rotulo="Telefone" valor={formatarTelefone(telefone)} />
+      </dl>
+
+      <div className="space-y-5 px-5 py-6">
+        {paga ? (
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-success/10 py-4 text-success">
+            <CheckCircle2 className="size-5" />
+            <span className="text-sm font-bold">Pagamento confirmado — fatura quitada</span>
+          </div>
         ) : (
-          <p className="rounded-full bg-success/10 py-3 text-center text-sm font-semibold text-success">
-            Fatura quitada
-          </p>
+          <>
+            <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-center">
+              <p className="flex items-center justify-center gap-2 text-sm font-bold text-foreground">
+                <QrCode className="size-4" />
+                Pague com PIX
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Escaneie o QR Code ou copie o código no app do seu banco.
+              </p>
+
+              <div className="mx-auto mt-4 grid size-56 place-items-center rounded-2xl border border-border bg-card p-3">
+                {pix.isPending ? (
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                ) : qr ? (
+                  <img src={qr} alt="QR Code para pagamento PIX da fatura" className="size-full" />
+                ) : (
+                  <p className="px-4 text-xs text-muted-foreground">
+                    Não foi possível gerar o QR Code agora. Use o código abaixo.
+                  </p>
+                )}
+              </div>
+
+              {copiaCola ? (
+                <p className="mx-auto mt-4 max-w-full break-all rounded-xl bg-muted px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                  {copiaCola}
+                </p>
+              ) : null}
+
+              <Button
+                size="lg"
+                className="mt-4 h-14 w-full rounded-full bg-cta text-base font-bold text-cta-foreground hover:bg-cta/90"
+                onClick={() => copiar.mutate()}
+                disabled={!copiaCola}
+              >
+                <Copy className="size-5" />
+                Copiar código PIX
+              </Button>
+
+              <p className="mt-4 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" />
+                Aguardando pagamento…
+              </p>
+            </div>
+
+            <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <ShieldCheck className="size-4" />
+              A confirmação é automática assim que o banco liquidar o PIX.
+            </p>
+          </>
         )}
       </div>
     </div>
