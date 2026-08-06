@@ -384,7 +384,7 @@ export function ImportarClientesDialog({
             <input
               ref={inputRef}
               type="file"
-              accept=".xlsx,.csv"
+              accept=".xlsx,.xls,.csv"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
