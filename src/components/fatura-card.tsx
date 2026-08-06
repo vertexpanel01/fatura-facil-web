@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { confirmarPagamentoPix, consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
 import type { FaturaPublica } from "@/lib/consulta.functions";
 import {
-  formatarCpf,
   formatarData,
   formatarMoeda,
+  formatarTelefone,
   MENSAGEM_STATUS,
   STATUS_FATURA,
   STATUS_PAGAVEIS,
@@ -71,11 +71,11 @@ export function Campo({
 export function CardFatura({
   fatura,
   nome,
-  documento,
+  telefone,
 }: {
   fatura: FaturaPublica;
   nome: string;
-  documento: string;
+  telefone: string;
 }) {
   const gerarPix = useServerFn(gerarPixFatura);
   const verStatus = useServerFn(consultarStatusFatura);
@@ -147,7 +147,7 @@ export function CardFatura({
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
           <p className="truncate text-base font-semibold text-foreground">{nome}</p>
-          <p className="text-sm text-muted-foreground">{formatarCpf(documento)}</p>
+          <p className="text-sm text-muted-foreground">{formatarTelefone(telefone)}</p>
         </div>
         <StatusBadge status={status} />
       </div>
@@ -174,7 +174,7 @@ export function CardFatura({
         <Campo rotulo="Valor original" valor={formatarMoeda(fatura.valor_original)} riscado />
         <Campo rotulo="Valor com desconto à vista" valor={formatarMoeda(valorPagar)} destaque />
         <Campo rotulo="Vencimento" valor={formatarData(fatura.vencimento)} />
-        <Campo rotulo="CPF" valor={formatarCpf(documento)} />
+        <Campo rotulo="Telefone" valor={formatarTelefone(telefone)} />
       </dl>
 
       <div className="space-y-5 px-5 py-6">

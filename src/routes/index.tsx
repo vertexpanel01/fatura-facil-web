@@ -21,21 +21,21 @@ import logo from "@/assets/logo-claro.png";
 import mulherSorrindo from "@/assets/mulher-sorrindo.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatarCpf, somenteDigitos } from "@/lib/format";
+import { formatarTelefone, somenteDigitos } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Fatura Móvel — Consulte e pague sua fatura pelo CPF" },
+      { title: "Fatura Móvel — Consulte e pague sua fatura pelo telefone" },
       {
         name: "description",
         content:
-          "Consulte sua fatura pelo CPF, veja o valor com desconto, o vencimento e pague na hora. Consulta grátis, segura e 100% online.",
+          "Consulte sua fatura pelo número de telefone, veja o valor com desconto, o vencimento e pague na hora. Consulta grátis, segura e 100% online.",
       },
-      { property: "og:title", content: "Fatura Móvel — Consulta de faturas por CPF" },
+      { property: "og:title", content: "Fatura Móvel — Consulta de faturas por telefone" },
       {
         property: "og:description",
-        content: "Digite seu CPF e veja sua fatura: valor original, valor com desconto, vencimento e status.",
+        content: "Digite seu telefone e veja sua fatura: valor original, valor com desconto, vencimento e status.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -52,7 +52,7 @@ const beneficios = [
 ] as const;
 
 const passos = [
-  { icone: IdCard, texto: "Informe o seu CPF" },
+  { icone: IdCard, texto: "Informe o seu telefone" },
   { icone: ReceiptText, texto: "Consulte os detalhes da sua fatura em aberto" },
   { icone: Handshake, texto: "Aproveite descontos imperdíveis disponíveis para você" },
   { icone: Barcode, texto: "Escolha pagar na hora com PIX" },
@@ -65,11 +65,11 @@ const duvidas = [
   },
   {
     p: "Como consultar minha fatura?",
-    r: "Basta digitar o seu CPF e clicar em Consultar Fatura. Você verá o nome do titular, o valor original, o valor com desconto, o vencimento e o status.",
+    r: "Basta digitar o seu telefone celular e clicar em Consultar Fatura. Você verá o nome do titular, o valor original, o valor com desconto, o vencimento e o status.",
   },
   {
-    p: "Não lembro qual CPF está cadastrado. O que faço?",
-    r: "No momento, a consulta é feita exclusivamente pelo CPF do cliente. Em caso de dúvida, entre em contato com o atendimento para confirmar o cadastro.",
+    p: "Não lembro qual telefone está cadastrado. O que faço?",
+    r: "No momento, a consulta é feita exclusivamente pelo número de telefone celular do cliente. Em caso de dúvida, entre em contato com o atendimento para confirmar o cadastro.",
   },
   {
     p: "Como funciona o pagamento?",
@@ -83,20 +83,20 @@ const duvidas = [
 
 
 function PaginaConsulta() {
-  const [cpf, setCpf] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [aceite, setAceite] = useState(false);
   const navigate = useNavigate();
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const digitos = somenteDigitos(cpf);
-      if (digitos.length !== 11) throw new Error("CPF inválido");
-      await navigate({ to: "/fatura/$cpf", params: { cpf: digitos } });
+      const digitos = somenteDigitos(telefone);
+      if (digitos.length !== 11) throw new Error("Telefone inválido");
+      await navigate({ to: "/fatura/$telefone", params: { telefone: digitos } });
     },
-    onError: () => toast.error("Informe um CPF válido."),
+    onError: () => toast.error("Informe um telefone válido."),
   });
 
-  const digitos = somenteDigitos(cpf);
+  const digitos = somenteDigitos(telefone);
   const podeConsultar = digitos.length === 11 && aceite && !mutation.isPending;
 
   return (
@@ -139,7 +139,7 @@ function PaginaConsulta() {
                   Fatura Móvel
                 </h1>
                 <p className="mt-4 text-base leading-relaxed sm:text-lg">
-                  Aproveite descontos imperdíveis. Consulta grátis e segura.
+                  Pague sua fatura em dia e garanta descontos imperdíveis.
                 </p>
               </div>
             </div>
@@ -154,18 +154,18 @@ function PaginaConsulta() {
               }}
             >
               <p className="text-xs font-semibold uppercase tracking-wide text-primary-foreground underline underline-offset-4">
-                Consulta pelo CPF
+                Consulta pelo telefone
               </p>
-              <label htmlFor="cpf" className="sr-only">
-                Digite seu CPF
+              <label htmlFor="telefone" className="sr-only">
+                Digite seu telefone
               </label>
               <Input
-                id="cpf"
+                id="telefone"
                 inputMode="numeric"
                 autoComplete="off"
-                placeholder="Digite seu CPF"
-                value={cpf}
-                onChange={(e) => setCpf(formatarCpf(e.target.value))}
+                placeholder="Digite seu número de celular"
+                value={telefone}
+                onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
                 className="mt-4 h-14 rounded-full border-0 bg-card px-6 text-base shadow-card"
               />
 
@@ -192,7 +192,7 @@ function PaginaConsulta() {
               </Button>
               <p className="mt-3 flex items-center gap-2 text-xs text-primary-foreground/85">
                 <ShieldCheck className="size-4" />
-                Mostramos apenas os dados vinculados ao CPF informado.
+                Mostramos apenas os dados vinculados ao telefone informado.
               </p>
             </form>
           </div>
@@ -248,7 +248,7 @@ function PaginaConsulta() {
         </ul>
         <p className="mt-6 leading-relaxed text-muted-foreground">
           O portal é uma plataforma online que permite consultar e quitar faturas de forma simples, rápida, segura e
-          com os melhores descontos. Você acessa com o seu CPF, vê os detalhes da sua fatura — valor
+          com os melhores descontos. Você acessa com o seu telefone celular, vê os detalhes da sua fatura — valor
           original, valor com desconto, vencimento e status — e paga na hora, sem precisar de atendente ou ligação
           telefônica.
         </p>
@@ -282,8 +282,8 @@ function PaginaConsulta() {
               Quite suas faturas em atraso com até 70% de desconto!
             </h2>
             <p className="mt-4 max-w-xl leading-relaxed opacity-90">
-              Regularize sua situação de forma 100% online, segura e intuitiva. Consulte gratuitamente pelo seu CPF
-              e escolha pagar agora com PIX.
+              Regularize sua situação de forma 100% online, segura e intuitiva. Consulte gratuitamente pelo seu telefone
+              celular e escolha pagar agora com PIX.
             </p>
             <Button
               size="lg"

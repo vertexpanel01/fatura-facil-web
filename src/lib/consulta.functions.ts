@@ -2,11 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const consultaSchema = z.object({
-  cpf: z
+  telefone: z
     .string()
     .transform((v) => v.replace(/\D/g, ""))
     .refine((v) => v.length === 11, {
-      message: "Informe um CPF válido.",
+      message: "Informe um telefone válido.",
     }),
 });
 
@@ -22,12 +22,12 @@ export type FaturaPublica = {
 
 export type ConsultaResultado = {
   encontrado: boolean;
-  cliente?: { nome: string; documento: string };
+  cliente?: { nome: string; telefone: string };
   faturas?: FaturaPublica[];
 };
 
 /**
- * Consulta pública por CPF. Roda apenas no servidor e devolve
+ * Consulta pública por telefone. Roda apenas no servidor e devolve
  * somente os campos necessários — nenhuma tabela é exposta ao público.
  */
 export const consultarFaturas = createServerFn({ method: "POST" })
@@ -37,8 +37,8 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 
     const { data: clientes, error: erroCliente } = await supabaseAdmin
       .from("clientes")
-      .select("id, nome, documento")
-      .eq("documento", data.cpf)
+      .select("id, nome, telefone")
+      .eq("telefone", data.telefone)
       .limit(1);
 
     if (erroCliente) throw new Error("Não foi possível consultar no momento.");
@@ -56,7 +56,7 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 
     return {
       encontrado: true,
-      cliente: { nome: cliente.nome, documento: cliente.documento ?? "" },
+      cliente: { nome: cliente.nome, telefone: cliente.telefone ?? "" },
       faturas: (faturas ?? []).map((f) => ({
         id: f.id,
         descricao: f.descricao,
