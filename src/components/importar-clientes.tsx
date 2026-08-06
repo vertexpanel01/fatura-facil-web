@@ -237,24 +237,44 @@ export function ImportarClientesDialog({
   children: React.ReactNode;
 }) {
   const [aberto, setAberto] = useState(false);
-  const [cabecalhos, setCabecalhos] = useState<string[]>([]);
-  const [brutas, setBrutas] = useState<CelulaBruta[][]>([]);
+  const [raw, setRaw] = useState<CelulaBruta[][]>([]);
+  const [semCabecalho, setSemCabecalho] = useState(false);
   const [mapa, setMapa] = useState<Record<Campo, number | null> | null>(null);
   const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
   const [carregandoLeitura, setCarregandoLeitura] = useState(false);
   const [vencimentoGlobal, setVencimentoGlobal] = useState<Date | undefined>();
   const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mapeamentoRef = useRef<HTMLDivElement>(null);
 
-  const mapeamentoCompleto =
-    !!mapa && CAMPOS.filter((c) => c.obrigatorio).every((c) => mapa[c.campo] !== null);
+  const cabecalhos = useMemo(() => calcularCabecalhos(raw, semCabecalho), [raw, semCabecalho]);
+  const brutas = useMemo(() => (semCabecalho ? raw : raw.slice(1)), [raw, semCabecalho]);
+
+  // Dois primeiros valores preenchidos de cada coluna, para exibir como exemplo.
+  const exemplos = useMemo(
+    () =>
+      cabecalhos.map((_, col) => {
+        const vals: string[] = [];
+        for (const linha of brutas) {
+          const v = String(linha[col] ?? "").trim();
+          if (v) vals.push(v);
+          if (vals.length === 2) break;
+        }
+        return vals;
+      }),
+    [cabecalhos, brutas],
+  );
+
+  const faltando = CAMPOS.filter((c) => c.obrigatorio && (!mapa || mapa[c.campo] === null));
+  const mapeamentoCompleto = !!mapa && faltando.length === 0;
 
   const linhas = useMemo<LinhaPlanilha[]>(() => {
     if (!mapa || !mapeamentoCompleto) return [];
+    const offset = semCabecalho ? 1 : 2;
     return brutas
       .filter((linha) => linha.some((c) => String(c ?? "").trim() !== ""))
-      .map((linha, idx) => validarLinha(linha, mapa, idx + 2));
-  }, [brutas, mapa, mapeamentoCompleto]);
+      .map((linha, idx) => validarLinha(linha, mapa, idx + offset));
+  }, [brutas, mapa, mapeamentoCompleto, semCabecalho]);
 
   const validas = linhas.filter((l) => l.erros.length === 0);
   const invalidas = linhas.filter((l) => l.erros.length > 0);
