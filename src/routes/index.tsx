@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { registrarAcesso } from "@/lib/acessos.functions";
 import bannerCasal from "@/assets/banner-casal.jpg";
 import logo from "@/assets/logo-claro.png";
 
