@@ -204,7 +204,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      faturas_por_telefone: {
+        Row: {
+          telefone: string | null
+          valor_com_desconto: number | null
+          valor_em_aberto: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
