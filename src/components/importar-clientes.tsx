@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Upload,
   Download,
@@ -18,66 +18,72 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { importarClientes } from "@/lib/clientes.functions";
-import { somenteDigitos, formatarTelefone, formatarMoeda } from "@/lib/format";
+import { somenteDigitos, formatarTelefone, formatarMoeda, STATUS_FATURA } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+type Campo = "telefone" | "nome" | "email" | "valorOriginal" | "valorDesconto" | "status";
+
+type CelulaBruta = string | number | null | undefined;
 
 type LinhaPlanilha = {
   nome: string;
   telefone: string;
   email: string | null;
-  documento: string | null;
-  observacoes: string | null;
   valorOriginal: number | null;
   valorDesconto: number | null;
-  vencimento: string | null;
+  status: string | null;
   linha: number;
   erros: string[];
 };
 
-const COLUNAS_ESPERADAS = [
-  { chaves: ["nome", "name", "cliente"], campo: "nome" as const },
-  { chaves: ["telefone", "tel", "celular", "phone", "whatsapp"], campo: "telefone" as const },
-  { chaves: ["email", "e-mail", "mail"], campo: "email" as const },
-  { chaves: ["documento", "cpf", "cnpj", "cpf/cnpj", "doc"], campo: "documento" as const },
-  { chaves: ["observacoes", "observações", "obs", "notas"], campo: "observacoes" as const },
+const CAMPOS: { campo: Campo; rotulo: string; obrigatorio: boolean; chaves: string[] }[] = [
   {
+    campo: "telefone",
+    rotulo: "Telefone",
+    obrigatorio: true,
+    chaves: ["telefone", "tel", "celular", "phone", "whatsapp"],
+  },
+  { campo: "nome", rotulo: "Nome", obrigatorio: true, chaves: ["nome", "name", "cliente"] },
+  { campo: "email", rotulo: "E-mail", obrigatorio: false, chaves: ["email", "email", "mail"] },
+  {
+    campo: "valorOriginal",
+    rotulo: "Valor em Aberto",
+    obrigatorio: true,
     chaves: ["valororiginal", "valoremaberto", "valor", "valoraberto", "valordafatura", "valorfatura"],
-    campo: "valorOriginal" as const,
   },
   {
+    campo: "valorDesconto",
+    rotulo: "Valor com Desconto",
+    obrigatorio: true,
     chaves: ["valorcomdesconto", "valordesconto", "desconto", "valorpromocional"],
-    campo: "valorDesconto" as const,
   },
-  { chaves: ["vencimento", "datavencimento", "datadevencimento"], campo: "vencimento" as const },
+  { campo: "status", rotulo: "Status", obrigatorio: false, chaves: ["status", "situacao"] },
 ];
+
+const STATUS_VALIDOS = Object.keys(STATUS_FATURA);
+
+const SEM_COLUNA = "__nenhuma__";
 
 function parseMoeda(valor: string): number | null {
   if (!valor) return null;
   const limpo = valor.replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
   const n = Number(limpo);
   return Number.isFinite(n) ? n : null;
-}
-
-function parseData(valor: string): string | null {
-  if (!valor) return null;
-  const br = valor.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
-  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
-  const iso = valor.match(/^\d{4}-\d{2}-\d{2}/);
-  if (iso) return iso[0];
-  const serial = Number(valor);
-  if (Number.isFinite(serial) && serial > 20000 && serial < 60000) {
-    const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
-    return d.toISOString().slice(0, 10);
-  }
-  return null;
 }
 
 function normalizarChave(chave: string): string {
@@ -88,17 +94,39 @@ function normalizarChave(chave: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function mapearColunas(cabecalhos: string[]): Record<string, number> {
-  const mapa: Record<string, number> = {};
-  for (const col of COLUNAS_ESPERADAS) {
-    const idx = cabecalhos.findIndex((h) => col.chaves.includes(normalizarChave(h)));
-    if (idx >= 0) mapa[col.campo] = idx;
+function parseStatus(valor: string): string | null {
+  if (!valor) return null;
+  const n = normalizarChave(valor);
+  const direto = STATUS_VALIDOS.find((s) => normalizarChave(s) === n);
+  if (direto) return direto;
+  const apelidos: Record<string, string> = {
+    aberto: "em_aberto",
+    pendente: "em_aberto",
+    ematraso: "vencida",
+    atrasada: "vencida",
+    atrasado: "vencida",
+    pago: "paga",
+    quitada: "paga",
+    quitado: "paga",
+    cancelado: "cancelada",
+    expirado: "expirada",
+    falha: "falhou",
+    processando: "em_processamento",
+  };
+  return apelidos[n] ?? null;
+}
+
+function mapeamentoAutomatico(cabecalhos: string[]): Record<Campo, number | null> {
+  const mapa = {} as Record<Campo, number | null>;
+  for (const c of CAMPOS) {
+    const idx = cabecalhos.findIndex((h) => c.chaves.includes(normalizarChave(h)));
+    mapa[c.campo] = idx >= 0 ? idx : null;
   }
   return mapa;
 }
 
-function extrairValor(linha: (string | number | null | undefined)[], idx: number | undefined): string {
-  if (idx === undefined) return "";
+function extrairValor(linha: CelulaBruta[], idx: number | null): string {
+  if (idx === null || idx === undefined) return "";
   const val = linha[idx];
   if (val === null || val === undefined) return "";
   return String(val).trim();
@@ -106,27 +134,28 @@ function extrairValor(linha: (string | number | null | undefined)[], idx: number
 
 function normalizarTelefone(valor: string): string {
   const digitos = somenteDigitos(String(valor));
-  if (digitos.length === 11 && digitos.startsWith("55")) return digitos.slice(2);
+  if (digitos.length === 13 && digitos.startsWith("55")) return digitos.slice(2);
   return digitos;
 }
 
 function validarLinha(
-  linha: (string | number | null | undefined)[],
-  mapa: Record<string, number>,
+  linha: CelulaBruta[],
+  mapa: Record<Campo, number | null>,
   numeroLinha: number,
 ): LinhaPlanilha {
-  const nome = extrairValor(linha, mapa["nome"]);
-  const telefone = normalizarTelefone(extrairValor(linha, mapa["telefone"]));
-  const email = extrairValor(linha, mapa["email"]) || null;
-  const documento = extrairValor(linha, mapa["documento"]) || null;
-  const observacoes = extrairValor(linha, mapa["observacoes"]) || null;
-  const valorOriginal = parseMoeda(extrairValor(linha, mapa["valorOriginal"]));
-  const valorDesconto = parseMoeda(extrairValor(linha, mapa["valorDesconto"]));
-  const vencimento = parseData(extrairValor(linha, mapa["vencimento"]));
+  const nome = extrairValor(linha, mapa.nome);
+  const telefone = normalizarTelefone(extrairValor(linha, mapa.telefone));
+  const email = extrairValor(linha, mapa.email) || null;
+  const valorOriginal = parseMoeda(extrairValor(linha, mapa.valorOriginal));
+  const valorDesconto = parseMoeda(extrairValor(linha, mapa.valorDesconto));
+  const statusBruto = extrairValor(linha, mapa.status);
+  const status = parseStatus(statusBruto);
   const erros: string[] = [];
 
   if (telefone.length < 10 || telefone.length > 11) erros.push("Telefone inválido (informe DDD + número).");
-
+  if (!nome) erros.push("Nome não informado.");
+  if (valorOriginal === null) erros.push("Valor em aberto inválido.");
+  if (valorDesconto === null) erros.push("Valor com desconto inválido.");
 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     erros.push("E-mail inválido.");
@@ -140,11 +169,9 @@ function validarLinha(
     nome,
     telefone,
     email,
-    documento,
-    observacoes,
     valorOriginal,
     valorDesconto,
-    vencimento,
+    status,
     linha: numeroLinha,
     erros,
   };
@@ -152,9 +179,9 @@ function validarLinha(
 
 export function gerarModeloPlanilha() {
   const dados = [
-    ["telefone", "valor_em_aberto", "valor_com_desconto", "nome", "email", "cpf", "observacoes"],
-    ["11999999999", 1200.5, 499.9, "Maria Silva", "maria@email.com", "12345678900", "Cliente ativo"],
-    ["21988888888", 800, 350, "Joao Souza", "", "", ""],
+    ["telefone", "nome", "email", "valor_em_aberto", "valor_com_desconto", "status"],
+    ["11999999999", "Maria Silva", "maria@email.com", 1200.5, 499.9, "em aberto"],
+    ["21988888888", "Joao Souza", "", 800, 350, "paga"],
   ];
   const ws = XLSX.utils.aoa_to_sheet(dados);
   const wb = XLSX.utils.book_new();
@@ -170,16 +197,30 @@ export function ImportarClientesDialog({
   children: React.ReactNode;
 }) {
   const [aberto, setAberto] = useState(false);
-  const [linhas, setLinhas] = useState<LinhaPlanilha[]>([]);
+  const [cabecalhos, setCabecalhos] = useState<string[]>([]);
+  const [brutas, setBrutas] = useState<CelulaBruta[][]>([]);
+  const [mapa, setMapa] = useState<Record<Campo, number | null> | null>(null);
   const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
   const [carregandoLeitura, setCarregandoLeitura] = useState(false);
   const [vencimentoGlobal, setVencimentoGlobal] = useState<Date | undefined>();
   const [progresso, setProgresso] = useState<{ feitos: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const mapeamentoCompleto =
+    !!mapa && CAMPOS.filter((c) => c.obrigatorio).every((c) => mapa[c.campo] !== null);
+
+  const linhas = useMemo<LinhaPlanilha[]>(() => {
+    if (!mapa || !mapeamentoCompleto) return [];
+    return brutas
+      .map((linha, idx) => validarLinha(linha, mapa, idx + 2))
+      .filter((l) => l.nome || l.telefone || l.email || l.valorOriginal !== null);
+  }, [brutas, mapa, mapeamentoCompleto]);
+
+  const validas = linhas.filter((l) => l.erros.length === 0);
+  const invalidas = linhas.filter((l) => l.erros.length > 0);
+
   const importar = useMutation({
     mutationFn: async () => {
-      const validas = linhas.filter((l) => l.erros.length === 0);
       if (!validas.length) throw new Error("Nenhuma linha válida para importar.");
       if (!vencimentoGlobal) throw new Error("Escolha a data de vencimento das faturas.");
 
@@ -194,10 +235,9 @@ export function ImportarClientesDialog({
           nome: l.nome || null,
           telefone: l.telefone,
           email: l.email,
-          documento: l.documento,
-          observacoes: l.observacoes,
           valor_original: l.valorOriginal,
           valor_desconto: l.valorDesconto,
+          status: l.status,
         }));
 
         const res = await importarClientes({
@@ -217,8 +257,7 @@ export function ImportarClientesDialog({
       if (res.faturasCriadas) partes.push(`${res.faturasCriadas} faturas criadas`);
       if (res.faturasAtualizadas) partes.push(`${res.faturasAtualizadas} faturas atualizadas`);
       toast.success(`${partes.join(" · ")}.`);
-      setLinhas([]);
-      setNomeArquivo(null);
+      limpar();
       setProgresso(null);
       setAberto(false);
       onSuccess();
@@ -228,7 +267,6 @@ export function ImportarClientesDialog({
       toast.error(e.message);
     },
   });
-
 
   function processarArquivo(file: File) {
     setCarregandoLeitura(true);
@@ -240,58 +278,33 @@ export function ImportarClientesDialog({
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: "array" });
         const firstSheetName = workbook.SheetNames[0];
-        if (!firstSheetName) {
-          toast.error("Nenhuma aba encontrada na planilha.");
-          setLinhas([]);
-          setCarregandoLeitura(false);
-          return;
-        }
-        const sheet = workbook.Sheets[firstSheetName];
+        const sheet = firstSheetName ? workbook.Sheets[firstSheetName] : undefined;
         if (!sheet) {
           toast.error("Não foi possível ler a aba da planilha.");
-          setLinhas([]);
+          setCabecalhos([]);
+          setBrutas([]);
+          setMapa(null);
           setCarregandoLeitura(false);
           return;
         }
-        const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false }) as (
-          | string
-          | number
-          | null
-          | undefined
-        )[][];
 
-        if (raw.length < 2) {
-          toast.error("A planilha deve conter pelo menos uma linha de cabeçalho e uma linha de dados.");
-          setLinhas([]);
-          setCarregandoLeitura(false);
-          return;
-        }
+        const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false }) as CelulaBruta[][];
 
         const firstRow = raw[0];
-        if (!firstRow) {
-          toast.error("Cabeçalho da planilha está vazio.");
-          setLinhas([]);
-          setCarregandoLeitura(false);
-          return;
-        }
-        const cabecalhos = firstRow.map((h) => String(h ?? ""));
-        const mapa = mapearColunas(cabecalhos);
-
-        if (mapa["telefone"] === undefined) {
-          toast.error("Coluna obrigatória não encontrada: telefone.");
-          setLinhas([]);
+        if (raw.length < 2 || !firstRow) {
+          toast.error("A planilha deve conter uma linha de cabeçalho e pelo menos uma linha de dados.");
+          setCabecalhos([]);
+          setBrutas([]);
+          setMapa(null);
           setCarregandoLeitura(false);
           return;
         }
 
-
-        const processadas = raw
-          .slice(1)
-          .map((linha, idx) => validarLinha(linha, mapa, idx + 2))
-          .filter((l) => l.nome || l.telefone || l.email || l.documento || l.observacoes || l.valorOriginal !== null);
-
-        setLinhas(processadas);
-      } catch (err) {
+        const cabs = firstRow.map((h, i) => String(h ?? "").trim() || `Coluna ${i + 1}`);
+        setCabecalhos(cabs);
+        setBrutas(raw.slice(1));
+        setMapa(mapeamentoAutomatico(cabs));
+      } catch {
         toast.error("Erro ao ler planilha. Verifique o formato e tente novamente.");
       } finally {
         setCarregandoLeitura(false);
@@ -307,18 +320,17 @@ export function ImportarClientesDialog({
   }
 
   function limpar() {
-    setLinhas([]);
+    setCabecalhos([]);
+    setBrutas([]);
+    setMapa(null);
     setNomeArquivo(null);
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  const validas = linhas.filter((l) => l.erros.length === 0);
-  const invalidas = linhas.filter((l) => l.erros.length > 0);
-
   return (
     <Dialog open={aberto} onOpenChange={setAberto}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Importar clientes</DialogTitle>
         </DialogHeader>
@@ -329,7 +341,10 @@ export function ImportarClientesDialog({
               <Download className="mr-2 size-4" />
               Baixar modelo
             </Button>
-            <p className="text-xs text-muted-foreground">Arquivos .xlsx, .xls ou .csv. Colunas reconhecidas automaticamente: <strong>telefone</strong>, <strong>valor_em_aberto</strong> e <strong>valor_com_desconto</strong> (nome, e-mail, CPF/CNPJ e observações são opcionais).</p>
+            <p className="text-xs text-muted-foreground">
+              Arquivos .xlsx, .xls ou .csv. Depois do upload você escolhe manualmente qual coluna da planilha
+              corresponde a cada campo do sistema.
+            </p>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-4">
@@ -365,8 +380,6 @@ export function ImportarClientesDialog({
             </Popover>
           </div>
 
-
-
           <div
             className="rounded-2xl border-2 border-dashed border-border bg-muted/40 p-8 text-center transition-colors hover:bg-muted/60"
             onDragOver={(e) => e.preventDefault()}
@@ -380,7 +393,7 @@ export function ImportarClientesDialog({
             <p className="mt-3 text-sm font-medium text-foreground">
               Arraste uma planilha ou clique para selecionar
             </p>
-            <p className="text-xs text-muted-foreground">.xlsx, .csv</p>
+            <p className="text-xs text-muted-foreground">.xlsx, .xls, .csv</p>
             <input
               ref={inputRef}
               type="file"
@@ -412,6 +425,89 @@ export function ImportarClientesDialog({
             </div>
           )}
 
+          {cabecalhos.length > 0 && (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Prévia da planilha</p>
+                <div className="max-h-56 overflow-auto rounded-xl border border-border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted text-left text-xs font-medium uppercase text-muted-foreground">
+                      <tr>
+                        {cabecalhos.map((h, i) => (
+                          <th key={i} className="whitespace-nowrap px-3 py-2">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {brutas.slice(0, 5).map((linha, i) => (
+                        <tr key={i}>
+                          {cabecalhos.map((_, c) => (
+                            <td key={c} className="whitespace-nowrap px-3 py-2">
+                              {String(linha[c] ?? "")}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Mostrando as primeiras linhas de {brutas.length.toLocaleString("pt-BR")} do arquivo.
+                </p>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Mapeamento de colunas</p>
+                  <p className="text-xs text-muted-foreground">
+                    Escolha qual coluna da planilha corresponde a cada campo do sistema.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {CAMPOS.map((c) => (
+                    <div key={c.campo} className="space-y-1.5">
+                      <Label className="text-xs">
+                        {c.rotulo}{" "}
+                        <span className="text-muted-foreground">
+                          ({c.obrigatorio ? "obrigatório" : "opcional"})
+                        </span>
+                      </Label>
+                      <Select
+                        value={mapa?.[c.campo] === null || mapa?.[c.campo] === undefined
+                          ? SEM_COLUNA
+                          : String(mapa[c.campo])}
+                        onValueChange={(v) =>
+                          setMapa((m) =>
+                            m ? { ...m, [c.campo]: v === SEM_COLUNA ? null : Number(v) } : m,
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar coluna" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={SEM_COLUNA}>Não importar</SelectItem>
+                          {cabecalhos.map((h, i) => (
+                            <SelectItem key={i} value={String(i)}>
+                              {h}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+                {!mapeamentoCompleto && (
+                  <p className="text-xs text-destructive">
+                    Selecione as colunas de telefone, nome, valor em aberto e valor com desconto para continuar.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
           {linhas.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
@@ -435,12 +531,13 @@ export function ImportarClientesDialog({
                       <th className="px-3 py-2">Em aberto</th>
                       <th className="px-3 py-2">Com desconto</th>
                       <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2">Situação</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {linhas.slice(0, 50).map((l, idx) => (
                       <tr key={idx} className={l.erros.length > 0 ? "bg-destructive/10" : ""}>
-                        <td className="px-3 py-2">{l.nome}</td>
+                        <td className="px-3 py-2">{l.nome || "—"}</td>
                         <td className="px-3 py-2">{formatarTelefone(l.telefone)}</td>
                         <td className="px-3 py-2">{l.email || "—"}</td>
                         <td className="px-3 py-2">
@@ -448,6 +545,9 @@ export function ImportarClientesDialog({
                         </td>
                         <td className="px-3 py-2">
                           {l.valorDesconto !== null ? formatarMoeda(l.valorDesconto) : "—"}
+                        </td>
+                        <td className="px-3 py-2">
+                          {l.status ? STATUS_FATURA[l.status as keyof typeof STATUS_FATURA] : "Em aberto"}
                         </td>
                         <td className="px-3 py-2">
                           {l.erros.length > 0 ? (
