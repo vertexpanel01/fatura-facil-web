@@ -87,6 +87,12 @@ function PaginaConsulta() {
   const [aceite, setAceite] = useState(false);
   const navigate = useNavigate();
 
+  // Contabiliza a visita à página pública (invisível para o visitante).
+  useEffect(() => {
+    void registrarAcesso({ data: { pagina: "/" } }).catch(() => {});
+  }, []);
+
+
   const mutation = useMutation({
     mutationFn: async () => {
       const digitos = somenteDigitos(telefone);
