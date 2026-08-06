@@ -111,13 +111,6 @@ function PaginaConsulta() {
             height={38}
             className="h-9 w-auto rounded-md bg-card px-3 py-1"
           />
-
-          <Link
-            to="/auth"
-            className="text-sm font-semibold text-primary-foreground/90 transition-opacity hover:opacity-75"
-          >
-            Área administrativa
-          </Link>
         </div>
       </header>
 
