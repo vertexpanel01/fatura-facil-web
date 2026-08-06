@@ -71,6 +71,28 @@ function Dashboard() {
     },
   });
 
+  const queryClient = useQueryClient();
+  const { data: metricas, isLoading: carregandoMetricas } = useQuery({
+    queryKey: ["metricas-acessos"],
+    queryFn: () => obterMetricasAcessos(),
+    refetchInterval: 30000,
+  });
+
+  // Atualização em tempo real conforme novos acessos chegam.
+  useEffect(() => {
+    const canal = supabase
+      .channel("acessos-dashboard")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "acessos" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["metricas-acessos"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [queryClient]);
+
+
+
   return (
     <div className="space-y-8">
       <div>
