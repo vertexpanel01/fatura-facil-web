@@ -18,7 +18,10 @@ export const Route = createFileRoute("/_authenticated/admin")({
       .eq("role", "admin")
       .maybeSingle();
 
-    if (!papeis) throw redirect({ to: "/auth", search: { negado: true } });
+    if (!papeis) {
+      await supabase.auth.signOut();
+      throw redirect({ to: "/auth" });
+    }
   },
   component: LayoutAdmin,
 });
