@@ -136,7 +136,7 @@ function PaginaConsulta() {
 
               <div className="max-w-md text-primary-foreground drop-shadow-lg lg:ml-auto">
                 <h1 className="text-2xl font-extrabold uppercase leading-tight sm:text-4xl">
-                  Fatura Móvel
+                  Fatura em Dia
                 </h1>
                 <p className="mt-4 text-base leading-relaxed sm:text-lg">
                   Pague sua fatura em dia e garanta descontos imperdíveis.
