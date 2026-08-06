@@ -89,12 +89,15 @@ export function CardFatura({
   );
   const economia = fatura.valor_original - valorPagar;
   const paga = status === "paga";
+  const pagavel = STATUS_PAGAVEIS.includes(status);
+  const emProcessamento = status === "em_processamento";
+  const mensagem = MENSAGEM_STATUS[status] ?? "Não foi possível determinar a situação desta fatura.";
 
   // Gera o PIX automaticamente ao abrir a fatura (menos um passo para o cliente).
   const pix = useQuery({
     queryKey: ["pix", fatura.id],
     queryFn: () => gerarPix({ data: { fatura_id: fatura.id } }),
-    enabled: !paga,
+    enabled: pagavel,
     staleTime: Infinity,
     retry: false,
   });
@@ -107,9 +110,10 @@ export function CardFatura({
       setStatus(r.status);
       return r;
     },
-    enabled: !paga && Boolean(pix.data?.copia_cola),
+    enabled: (pagavel && Boolean(pix.data?.copia_cola)) || emProcessamento,
     refetchInterval: 5000,
   });
+
 
   const copiaCola = pix.data?.copia_cola ?? "";
 
