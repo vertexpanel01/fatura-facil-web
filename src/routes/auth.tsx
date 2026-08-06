@@ -49,16 +49,6 @@ function PaginaAuth() {
     });
   }, [navigate]);
 
-  async function promoverPrimeiroAdmin() {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) return;
-    try {
-      await supabase.rpc("bootstrap_admin", { _user_id: sessionData.session.user.id });
-    } catch {
-      // ignora se já existir admin; o redirecionamento fará a verificação de permissão
-    }
-  }
-
   async function concluirAcesso(userId: string) {
     if (await ehAdmin(userId)) {
       setCarregando(false);
@@ -81,7 +71,6 @@ function PaginaAuth() {
       toast.error("Não foi possível entrar", { description: "Verifique o e-mail e a senha." });
       return;
     }
-    await promoverPrimeiroAdmin();
     await concluirAcesso(data.user.id);
   }
 
@@ -100,8 +89,7 @@ function PaginaAuth() {
       return;
     }
     if (data.session && data.user) {
-      await promoverPrimeiroAdmin();
-      await concluirAcesso(data.user.id);
+        await concluirAcesso(data.user.id);
     } else {
       setCarregando(false);
       toast.success("Cadastro criado", {
