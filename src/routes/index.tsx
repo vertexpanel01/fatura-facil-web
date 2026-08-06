@@ -222,7 +222,14 @@ function PaginaConsulta() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-primary">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <img src={logo} alt="Logo da operadora Claro" width={140} height={38} className="h-8 w-auto" />
+          <img
+            src={logo}
+            alt="Logo da operadora Claro"
+            width={140}
+            height={38}
+            className="h-9 w-auto rounded-md bg-card px-3 py-1"
+          />
+
           <Link
             to="/auth"
             className="text-sm font-semibold text-primary-foreground/90 transition-opacity hover:opacity-75"
@@ -243,8 +250,9 @@ function PaginaConsulta() {
               height={912}
               className="absolute inset-0 size-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[oklch(0.15_0_0/0.85)]" />
-            <div className="relative flex h-full items-center px-6 py-12 sm:px-10">
+            <div className="absolute inset-0 bg-gradient-to-r from-[oklch(0.15_0_0/0.15)] via-[oklch(0.12_0_0/0.55)] to-[oklch(0.1_0_0/0.95)]" />
+            <div className="relative flex h-full items-center justify-end px-6 py-12 sm:px-10">
+
               <div className="max-w-md text-primary-foreground drop-shadow-lg lg:ml-auto">
                 <h1 className="text-2xl font-extrabold uppercase leading-tight sm:text-4xl">
                   Negocia fácil: é o mês todo com até 70% de desconto!
