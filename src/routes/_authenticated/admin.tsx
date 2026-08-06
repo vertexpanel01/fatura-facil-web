@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { BarChart3, FileText, LogOut, Receipt } from "lucide-react";
 
@@ -7,8 +7,25 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  beforeLoad: async () => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) throw redirect({ to: "/auth" });
+
+    const { data: papeis } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!papeis) {
+      await supabase.auth.signOut();
+      throw redirect({ to: "/auth" });
+    }
+  },
   component: LayoutAdmin,
 });
+
 
 const itens = [
   { to: "/admin", label: "Dashboard", icon: BarChart3, exact: true },
