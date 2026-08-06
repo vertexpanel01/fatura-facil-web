@@ -1,10 +1,22 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2, X } from "lucide-react";
+import {
+  Upload,
+  Download,
+  FileSpreadsheet,
+  AlertCircle,
+  CheckCircle2,
+  X,
+  CalendarIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +26,8 @@ import {
 } from "@/components/ui/dialog";
 import { importarClientes } from "@/lib/clientes.functions";
 import { somenteDigitos, formatarTelefone, formatarMoeda } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
 
 type LinhaPlanilha = {
   nome: string;
@@ -159,12 +173,14 @@ export function ImportarClientesDialog({
   const [linhas, setLinhas] = useState<LinhaPlanilha[]>([]);
   const [nomeArquivo, setNomeArquivo] = useState<string | null>(null);
   const [carregandoLeitura, setCarregandoLeitura] = useState(false);
+  const [vencimentoGlobal, setVencimentoGlobal] = useState<Date | undefined>();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const importar = useMutation({
     mutationFn: async () => {
       const validas = linhas.filter((l) => l.erros.length === 0);
       if (!validas.length) throw new Error("Nenhuma linha válida para importar.");
+      if (!vencimentoGlobal) throw new Error("Escolha a data de vencimento das faturas.");
       const clientes = validas.map((l) => ({
         nome: l.nome,
         telefone: l.telefone,
@@ -175,7 +191,9 @@ export function ImportarClientesDialog({
         valor_desconto: l.valorDesconto,
         vencimento: l.vencimento,
       }));
-      return importarClientes({ data: { clientes } });
+      return importarClientes({
+        data: { clientes, vencimento_global: format(vencimentoGlobal, "yyyy-MM-dd") },
+      });
     },
     onSuccess: (res) => {
       const partes = [`${res.importados} clientes importados`];
@@ -291,6 +309,41 @@ export function ImportarClientesDialog({
             <p className="text-xs text-muted-foreground">Arquivos .xlsx ou .csv com as colunas Nome, Telefone, Valor em aberto, Valor com desconto, Vencimento, Email, CPF/CNPJ e Observações.</p>
           </div>
 
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-sm font-medium text-foreground">Data de vencimento das faturas</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Todas as faturas desta importação receberão esta mesma data.
+            </p>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "mt-3 w-full justify-start text-left font-normal sm:w-72",
+                    !vencimentoGlobal && "text-muted-foreground",
+                  )}
+                >
+                  <CalendarIcon className="mr-2 size-4" />
+                  {vencimentoGlobal
+                    ? format(vencimentoGlobal, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                    : "Escolher data no calendário"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={vencimentoGlobal}
+                  onSelect={setVencimentoGlobal}
+                  locale={ptBR}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+
+
           <div
             className="rounded-2xl border-2 border-dashed border-border bg-muted/40 p-8 text-center transition-colors hover:bg-muted/60"
             onDragOver={(e) => e.preventDefault()}
@@ -394,9 +447,14 @@ export function ImportarClientesDialog({
                 )}
               </div>
 
+              {!vencimentoGlobal && (
+                <p className="text-xs text-destructive">
+                  Escolha a data de vencimento acima para liberar a importação.
+                </p>
+              )}
               <Button
                 className="w-full"
-                disabled={!validas.length || importar.isPending}
+                disabled={!validas.length || !vencimentoGlobal || importar.isPending}
                 onClick={() => importar.mutate()}
               >
                 {importar.isPending ? "Importando..." : `Importar ${validas.length} clientes`}

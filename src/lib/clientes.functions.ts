@@ -15,7 +15,15 @@ const clienteImportSchema = z.object({
 
 const importarClientesSchema = z.object({
   clientes: z.array(clienteImportSchema).min(1).max(1000),
+  // Data de vencimento única escolhida no calendário: quando informada,
+  // vale para TODAS as faturas da importação.
+  vencimento_global: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
 });
+
 
 export const importarClientes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -88,9 +96,10 @@ export const importarClientes = createServerFn({ method: "POST" })
       if (!clienteId) continue;
 
       const vencimento =
-        c.vencimento && /^\d{4}-\d{2}-\d{2}$/.test(c.vencimento)
+        data.vencimento_global ??
+        (c.vencimento && /^\d{4}-\d{2}-\d{2}$/.test(c.vencimento)
           ? c.vencimento
-          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
 
       const faturaExistente = faturaAbertaPorCliente.get(clienteId);
       if (faturaExistente) {

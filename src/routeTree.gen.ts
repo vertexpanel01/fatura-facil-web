@@ -20,6 +20,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminFaturasRouteImport } from './routes/_authenticated/admin.faturas'
 import { Route as AuthenticatedAdminPagamentosRouteImport } from './routes/_authenticated/admin.pagamentos'
+import { Route as ApiPublicCobrancaRouteImport } from './routes/api/public/cobranca'
 import { Route as ApiPublicFaturasRouteImport } from './routes/api/public/faturas'
 import { Route as ApiPublicPixWebhookRouteImport } from './routes/api/public/pix-webhook'
 
@@ -80,6 +81,11 @@ const AuthenticatedAdminPagamentosRoute =
     path: '/pagamentos',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const ApiPublicCobrancaRoute = ApiPublicCobrancaRouteImport.update({
+  id: '/api/public/cobranca',
+  path: '/api/public/cobranca',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicFaturasRoute = ApiPublicFaturasRouteImport.update({
   id: '/api/public/faturas',
   path: '/api/public/faturas',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
+  '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
+  '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/_authenticated/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
+  '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/pagamentos'
+    | '/api/public/cobranca'
     | '/api/public/faturas'
     | '/api/public/pix-webhook'
     | '/admin/'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/pagamentos'
+    | '/api/public/cobranca'
     | '/api/public/faturas'
     | '/api/public/pix-webhook'
     | '/admin'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/faturas'
     | '/_authenticated/admin/pagamentos'
+    | '/api/public/cobranca'
     | '/api/public/faturas'
     | '/api/public/pix-webhook'
     | '/_authenticated/admin/'
@@ -186,6 +198,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   FaturaTelefoneRoute: typeof FaturaTelefoneRoute
+  ApiPublicCobrancaRoute: typeof ApiPublicCobrancaRoute
   ApiPublicFaturasRoute: typeof ApiPublicFaturasRoute
   ApiPublicPixWebhookRoute: typeof ApiPublicPixWebhookRoute
 }
@@ -269,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPagamentosRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/api/public/cobranca': {
+      id: '/api/public/cobranca'
+      path: '/api/public/cobranca'
+      fullPath: '/api/public/cobranca'
+      preLoaderRoute: typeof ApiPublicCobrancaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/faturas': {
       id: '/api/public/faturas'
       path: '/api/public/faturas'
@@ -321,19 +341,10 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   FaturaTelefoneRoute: FaturaTelefoneRoute,
+  ApiPublicCobrancaRoute: ApiPublicCobrancaRoute,
   ApiPublicFaturasRoute: ApiPublicFaturasRoute,
   ApiPublicPixWebhookRoute: ApiPublicPixWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
