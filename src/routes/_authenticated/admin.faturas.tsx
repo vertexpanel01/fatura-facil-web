@@ -36,6 +36,8 @@ export const Route = createFileRoute("/_authenticated/admin/faturas")({
   component: PaginaFaturas,
 });
 
+type StatusFatura = "em_aberto" | "paga" | "vencida" | "cancelada";
+
 type Fatura = {
   id: string;
   cliente_id: string;
@@ -99,7 +101,7 @@ function PaginaFaturas() {
         valor_original: Number(form.valor_original) || 0,
         valor_desconto: Number(form.valor_desconto) || 0,
         vencimento: form.vencimento,
-        status: form.status,
+        status: form.status as StatusFatura,
         pix_copia_cola: form.pix_copia_cola.trim() || null,
       };
       const resposta = editando
@@ -118,7 +120,7 @@ function PaginaFaturas() {
   });
 
   const alterarStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status }: { id: string; status: StatusFatura }) => {
       const { error } = await supabase.from("faturas").update({ status }).eq("id", id);
       if (error) throw new Error(error.message);
       if (status === "paga") {
@@ -286,7 +288,7 @@ function PaginaFaturas() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Select value={f.status} onValueChange={(v) => alterarStatus.mutate({ id: f.id, status: v })}>
+                <Select value={f.status} onValueChange={(v) => alterarStatus.mutate({ id: f.id, status: v as StatusFatura })}>
                   <SelectTrigger className="w-[150px]">
                     <SelectValue />
                   </SelectTrigger>
