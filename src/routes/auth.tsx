@@ -99,10 +99,9 @@ function PaginaAuth() {
       toast.error("Não foi possível cadastrar", { description: error.message });
       return;
     }
-    if (data.session) {
+    if (data.session && data.user) {
       await promoverPrimeiroAdmin();
-      setCarregando(false);
-      navigate({ to: "/admin", replace: true });
+      await concluirAcesso(data.user.id);
     } else {
       setCarregando(false);
       toast.success("Cadastro criado", {
