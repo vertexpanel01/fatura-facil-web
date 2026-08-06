@@ -49,7 +49,13 @@ export const importarClientes = createServerFn({ method: "POST" })
       throw new Error("Apenas administradores podem importar clientes.");
     }
 
-    const PENDENTES = ["em_aberto", "vencida", "expirada", "falhou", "em_processamento"];
+    const PENDENTES = [
+      "em_aberto",
+      "vencida",
+      "expirada",
+      "falhou",
+      "em_processamento",
+    ] as const;
 
     // Normaliza telefones (remove DDI 55 e zeros à esquerda) e descarta inválidos.
     const vistos = new Set<string>();
