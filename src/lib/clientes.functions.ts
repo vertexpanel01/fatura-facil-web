@@ -20,12 +20,14 @@ export const importarClientes = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
+    const { data: roleRow, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
 
-    if (!isAdmin) {
+    if (roleError || !roleRow) {
       throw new Error("Apenas administradores podem importar clientes.");
     }
 
