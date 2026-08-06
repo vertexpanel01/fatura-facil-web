@@ -108,9 +108,9 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
     if (!txid || !copiaCola) {
       txid = novoTxid();
       copiaCola = gerarBrCode({
-        chave: process.env["PIX_CHAVE"] ?? "pagamentos@negociafacil.com.br",
+        chave: process.env["PIX_CHAVE"] ?? "pagamentos@faturamovel.com.br",
         valor,
-        nome: process.env["PIX_RECEBEDOR"] ?? "NEGOCIA FACIL",
+        nome: process.env["PIX_RECEBEDOR"] ?? "FATURA MOVEL",
         cidade: process.env["PIX_CIDADE"] ?? "SAO PAULO",
         txid,
       });
