@@ -147,7 +147,7 @@ export function CardFatura({
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
           <p className="truncate text-base font-semibold text-foreground">{nome}</p>
-          <p className="text-sm text-muted-foreground">{formatarTelefone(telefone)}</p>
+          <p className="text-sm text-muted-foreground">{formatarCpf(documento)}</p>
         </div>
         <StatusBadge status={status} />
       </div>
