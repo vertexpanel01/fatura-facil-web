@@ -141,6 +141,7 @@ export const importarClientes = createServerFn({ method: "POST" })
     return {
       importados: afetados,
       faturasCriadas,
+      faturasAtualizadas,
       telefones: Array.from(unicoTelefones),
     };
   });

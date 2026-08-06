@@ -178,9 +178,10 @@ export function ImportarClientesDialog({
       return importarClientes({ data: { clientes } });
     },
     onSuccess: (res) => {
-      toast.success(
-        `${res.importados} clientes importados${res.faturasCriadas ? ` e ${res.faturasCriadas} faturas criadas` : ""}.`,
-      );
+      const partes = [`${res.importados} clientes importados`];
+      if (res.faturasCriadas) partes.push(`${res.faturasCriadas} faturas criadas`);
+      if (res.faturasAtualizadas) partes.push(`${res.faturasAtualizadas} faturas atualizadas`);
+      toast.success(`${partes.join(" · ")}.`);
       setLinhas([]);
       setNomeArquivo(null);
       setAberto(false);
