@@ -1,26 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Copy, Loader2, QrCode, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, Copy, Loader2, QrCode, ShieldCheck } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
 import type { FaturaPublica } from "@/lib/consulta.functions";
-import { formatarData, formatarMoeda, formatarTelefone } from "@/lib/format";
+import {
+  formatarData,
+  formatarMoeda,
+  formatarTelefone,
+  MENSAGEM_STATUS,
+  STATUS_FATURA,
+  STATUS_PAGAVEIS,
+} from "@/lib/format";
+
 
 export function StatusBadge({ status }: { status: string }) {
   const estilos: Record<string, string> = {
     paga: "bg-success/12 text-success border-success/25",
     em_aberto: "bg-warning/15 text-warning-foreground border-warning/40",
+    em_processamento: "bg-warning/15 text-warning-foreground border-warning/40",
     vencida: "bg-destructive/10 text-destructive border-destructive/25",
-  };
-  const rotulos: Record<string, string> = {
-    paga: "Paga",
-    em_aberto: "Em aberto",
-    vencida: "Vencida",
-    cancelada: "Cancelada",
+    expirada: "bg-destructive/10 text-destructive border-destructive/25",
+    falhou: "bg-destructive/10 text-destructive border-destructive/25",
   };
   return (
     <span
@@ -28,10 +33,11 @@ export function StatusBadge({ status }: { status: string }) {
         estilos[status] ?? "bg-muted text-muted-foreground border-border"
       }`}
     >
-      {rotulos[status] ?? status}
+      {STATUS_FATURA[status] ?? status}
     </span>
   );
 }
+
 
 export function Campo({
   rotulo,
@@ -83,12 +89,15 @@ export function CardFatura({
   );
   const economia = fatura.valor_original - valorPagar;
   const paga = status === "paga";
+  const pagavel = STATUS_PAGAVEIS.includes(status);
+  const emProcessamento = status === "em_processamento";
+  const mensagem = MENSAGEM_STATUS[status] ?? "Não foi possível determinar a situação desta fatura.";
 
   // Gera o PIX automaticamente ao abrir a fatura (menos um passo para o cliente).
   const pix = useQuery({
     queryKey: ["pix", fatura.id],
     queryFn: () => gerarPix({ data: { fatura_id: fatura.id } }),
-    enabled: !paga,
+    enabled: pagavel,
     staleTime: Infinity,
     retry: false,
   });
@@ -101,9 +110,10 @@ export function CardFatura({
       setStatus(r.status);
       return r;
     },
-    enabled: !paga && Boolean(pix.data?.copia_cola),
+    enabled: (pagavel && Boolean(pix.data?.copia_cola)) || emProcessamento,
     refetchInterval: 5000,
   });
+
 
   const copiaCola = pix.data?.copia_cola ?? "";
 
@@ -158,12 +168,27 @@ export function CardFatura({
 
       <div className="space-y-5 px-5 py-6">
         {paga ? (
-          <div className="flex items-center justify-center gap-2 rounded-2xl bg-success/10 py-4 text-success">
-            <CheckCircle2 className="size-5" />
-            <span className="text-sm font-bold">Pagamento confirmado — fatura quitada</span>
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-success/10 px-4 py-4 text-center text-success">
+            <CheckCircle2 className="size-5 shrink-0" />
+            <span className="text-sm font-bold">{mensagem}</span>
+          </div>
+        ) : emProcessamento ? (
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-warning/10 px-4 py-4 text-center">
+            <Loader2 className="size-5 shrink-0 animate-spin text-muted-foreground" />
+            <span className="text-sm font-semibold text-foreground">{mensagem}</span>
+          </div>
+        ) : !pagavel ? (
+          <div className="space-y-3 rounded-2xl border border-border bg-secondary/40 px-5 py-6 text-center">
+            <AlertCircle className="mx-auto size-6 text-destructive" />
+            <p className="text-sm font-bold text-foreground">{STATUS_FATURA[status] ?? status}</p>
+            <p className="text-sm text-muted-foreground">{mensagem}</p>
           </div>
         ) : (
           <>
+            <p className="rounded-2xl bg-secondary/40 px-4 py-3 text-center text-sm text-muted-foreground">
+              {mensagem}
+            </p>
+
             <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-center">
               <p className="flex items-center justify-center gap-2 text-sm font-bold text-foreground">
                 <QrCode className="size-4" />

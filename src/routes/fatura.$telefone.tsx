@@ -124,10 +124,22 @@ function PaginaFatura() {
             />
           ))
         ) : (
-          <p className="rounded-xl border border-border bg-card p-6 text-muted-foreground">
-            Não há faturas registradas para este telefone.
-          </p>
+          <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-card">
+            <SearchX className="mx-auto size-9 text-primary" />
+            <p className="mt-4 text-base font-bold text-foreground">
+              Não há faturas para {formatarTelefone(resultado.cliente.telefone)}
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Seu cadastro está em dia: nenhuma fatura em aberto, vencida ou pendente de pagamento foi
+              localizada para este telefone. Se você esperava encontrar uma fatura, confira o número
+              digitado ou fale com o atendimento.
+            </p>
+            <Button asChild className="mt-6 rounded-full bg-cta text-cta-foreground hover:bg-cta/90">
+              <Link to="/">Consultar outro telefone</Link>
+            </Button>
+          </div>
         )}
+
 
         <p className="flex items-center gap-2 pt-4 text-xs text-muted-foreground">
           <ShieldCheck className="size-4" />

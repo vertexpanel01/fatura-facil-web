@@ -31,10 +31,31 @@ export function formatarDataHora(iso: string | null | undefined): string {
 
 export const STATUS_FATURA: Record<string, string> = {
   em_aberto: "Em aberto",
+  em_processamento: "Em processamento",
   paga: "Paga",
   vencida: "Vencida",
+  expirada: "Expirada",
+  falhou: "Pagamento falhou",
   cancelada: "Cancelada",
 };
+
+/** Estados em que o cliente ainda consegue pagar a fatura pela tela pública. */
+export const STATUS_PAGAVEIS = ["em_aberto", "vencida"];
+
+/** Mensagem clara exibida ao cliente para cada estado da fatura. */
+export const MENSAGEM_STATUS: Record<string, string> = {
+  em_aberto: "Esta fatura está em aberto. Pague com PIX e a confirmação é automática.",
+  em_processamento:
+    "Recebemos seu pagamento e ele está em processamento pelo banco. A confirmação aparece aqui em alguns instantes.",
+  paga: "Pagamento confirmado — esta fatura está quitada. Nada mais a fazer.",
+  vencida: "Esta fatura está vencida, mas ainda pode ser paga agora com o desconto à vista.",
+  expirada:
+    "O prazo desta oferta expirou e o código PIX não é mais válido. Fale com o atendimento para gerar uma nova negociação.",
+  falhou:
+    "A última tentativa de pagamento não foi concluída. Gere um novo código PIX ou fale com o atendimento.",
+  cancelada: "Esta fatura foi cancelada e não precisa ser paga.",
+};
+
 
 export const STATUS_PAGAMENTO: Record<string, string> = {
   pendente: "Pendente",

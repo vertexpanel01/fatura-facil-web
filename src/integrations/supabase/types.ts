@@ -217,7 +217,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      fatura_status: "em_aberto" | "paga" | "vencida" | "cancelada"
+      fatura_status:
+        | "em_aberto"
+        | "paga"
+        | "vencida"
+        | "cancelada"
+        | "expirada"
+        | "falhou"
+        | "em_processamento"
       pagamento_status: "pendente" | "confirmado" | "falhou" | "estornado"
     }
     CompositeTypes: {
@@ -347,7 +354,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      fatura_status: ["em_aberto", "paga", "vencida", "cancelada"],
+      fatura_status: [
+        "em_aberto",
+        "paga",
+        "vencida",
+        "cancelada",
+        "expirada",
+        "falhou",
+        "em_processamento",
+      ],
       pagamento_status: ["pendente", "confirmado", "falhou", "estornado"],
     },
   },

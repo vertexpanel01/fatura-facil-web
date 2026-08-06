@@ -49,7 +49,7 @@ export const consultarFaturas = createServerFn({ method: "POST" })
       .from("faturas")
       .select("id, descricao, referencia, valor_original, valor_desconto, vencimento, status")
       .eq("cliente_id", cliente.id)
-      .neq("status", "cancelada")
+      // Todos os estados são exibidos ao cliente, cada um com sua mensagem própria.
       .order("vencimento", { ascending: false });
 
     if (erroFaturas) throw new Error("Não foi possível consultar no momento.");

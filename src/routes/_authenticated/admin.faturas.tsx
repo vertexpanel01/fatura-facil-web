@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/admin/faturas")({
   component: PaginaFaturas,
 });
 
-type StatusFatura = "em_aberto" | "paga" | "vencida" | "cancelada";
+type StatusFatura = "em_aberto" | "em_processamento" | "paga" | "vencida" | "expirada" | "falhou" | "cancelada";
 
 type Fatura = {
   id: string;
