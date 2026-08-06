@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -202,15 +202,13 @@ function Campo({
 function PaginaConsulta() {
   const [telefone, setTelefone] = useState("");
   const [aceite, setAceite] = useState(false);
-  const [resultado, setResultado] = useState<ConsultaResultado | null>(null);
-  const consultar = useServerFn(consultarFaturas);
+  const navigate = useNavigate();
 
   const mutation = useMutation({
-    mutationFn: () => consultar({ data: { telefone } }),
-    onSuccess: (res) => {
-      setResultado(res);
-      if (!res.encontrado) toast.error("Nenhum cadastro encontrado para este telefone.");
-      document.getElementById("resultado")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    mutationFn: async () => {
+      const digitos = somenteDigitos(telefone);
+      if (digitos.length < 10 || digitos.length > 11) throw new Error("Telefone inválido");
+      await navigate({ to: "/fatura/$telefone", params: { telefone: digitos } });
     },
     onError: () => toast.error("Informe um telefone válido com DDD."),
   });
@@ -317,38 +315,6 @@ function PaginaConsulta() {
           </div>
         </div>
       </section>
-
-      {/* RESULTADO */}
-      <div id="resultado" className="mx-auto max-w-4xl px-4">
-        {resultado?.encontrado && resultado.cliente ? (
-          <section className="mt-12 space-y-5">
-            <h2 className="text-xl font-bold text-foreground">Faturas encontradas</h2>
-            {resultado.faturas?.length ? (
-              resultado.faturas.map((f) => (
-                <CardFatura
-                  key={f.id}
-                  fatura={f}
-                  nome={resultado.cliente!.nome}
-                  telefone={resultado.cliente!.telefone}
-                />
-              ))
-            ) : (
-              <p className="rounded-xl border border-border bg-card p-6 text-muted-foreground">
-                Nenhuma fatura registrada para este telefone.
-              </p>
-            )}
-          </section>
-        ) : null}
-
-        {resultado && !resultado.encontrado ? (
-          <section className="mt-12 rounded-xl border border-border bg-card p-8 text-center">
-            <h2 className="text-lg font-semibold text-foreground">Telefone não localizado</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Confira o número digitado (com DDD) ou entre em contato com o atendimento.
-            </p>
-          </section>
-        ) : null}
-      </div>
 
       {/* BENEFÍCIOS */}
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-16 sm:grid-cols-2 lg:grid-cols-4">
