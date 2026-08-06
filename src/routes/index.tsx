@@ -234,7 +234,7 @@ function PaginaConsulta() {
 
       {/* TEXTO INSTITUCIONAL */}
       <section className="mx-auto max-w-4xl px-4 pb-16">
-        <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Bem-vindo ao Portal Fatura Móvel!</h2>
+        <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Bem-vindo ao Portal Fatura em Dia!</h2>
         <p className="mt-4 font-semibold text-foreground">Aqui você pode:</p>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {["Consultar sua fatura", "Ver o valor com desconto", "Solicitar a 2ª via", "Pagar sua fatura por PIX"].map(
