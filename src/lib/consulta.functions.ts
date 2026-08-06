@@ -2,11 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const consultaSchema = z.object({
-  cpf: z
+  telefone: z
     .string()
     .transform((v) => v.replace(/\D/g, ""))
     .refine((v) => v.length === 11, {
-      message: "Informe um CPF válido.",
+      message: "Informe um telefone válido.",
     }),
 });
 
