@@ -1,6 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import {
   BadgeCheck,
@@ -14,7 +13,6 @@ import {
   ReceiptText,
   ShieldCheck,
   Wifi,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,9 +21,7 @@ import logo from "@/assets/logo-claro.png";
 import mulherSorrindo from "@/assets/mulher-sorrindo.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { consultarFaturas, iniciarPagamentoPix } from "@/lib/consulta.functions";
-import type { ConsultaResultado, FaturaPublica } from "@/lib/consulta.functions";
-import { formatarData, formatarMoeda, formatarTelefone, somenteDigitos } from "@/lib/format";
+import { formatarTelefone, somenteDigitos } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -85,132 +81,17 @@ const duvidas = [
   },
 ] as const;
 
-function StatusBadge({ status }: { status: string }) {
-  const estilos: Record<string, string> = {
-    paga: "bg-success/12 text-success border-success/25",
-    em_aberto: "bg-warning/15 text-warning-foreground border-warning/40",
-    vencida: "bg-destructive/10 text-destructive border-destructive/25",
-  };
-  const rotulos: Record<string, string> = {
-    paga: "Paga",
-    em_aberto: "Em aberto",
-    vencida: "Vencida",
-    cancelada: "Cancelada",
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
-        estilos[status] ?? "bg-muted text-muted-foreground border-border"
-      }`}
-    >
-      {rotulos[status] ?? status}
-    </span>
-  );
-}
-
-function CardFatura({ fatura, nome, telefone }: { fatura: FaturaPublica; nome: string; telefone: string }) {
-  const pagar = useServerFn(iniciarPagamentoPix);
-  const mutation = useMutation({
-    mutationFn: () => pagar({ data: { fatura_id: fatura.id } }),
-    onSuccess: (res) => {
-      if (res.integrado && res.pix_copia_cola) {
-        void navigator.clipboard?.writeText(res.pix_copia_cola);
-        toast.success("Código PIX copiado!", { description: "Cole no app do seu banco para pagar." });
-      } else {
-        toast.info("Pagamento registrado", {
-          description:
-            "O gateway PIX ainda será integrado. Sua solicitação de pagamento foi registrada para o atendimento.",
-        });
-      }
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const desconto = fatura.valor_desconto > 0 ? fatura.valor_desconto : fatura.valor_original;
-  const economia = fatura.valor_original - desconto;
-
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/60 px-5 py-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
-          <p className="text-base font-semibold text-foreground">{nome}</p>
-        </div>
-        <StatusBadge status={fatura.status} />
-      </div>
-
-      <dl className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2">
-        <Campo rotulo="Telefone" valor={formatarTelefone(telefone)} />
-        <Campo rotulo="Vencimento" valor={formatarData(fatura.vencimento)} />
-        <Campo rotulo="Valor original" valor={formatarMoeda(fatura.valor_original)} riscado />
-        <Campo rotulo="Valor com desconto" valor={formatarMoeda(desconto)} destaque />
-      </dl>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-        <p className="text-sm text-muted-foreground">
-          {fatura.descricao}
-          {fatura.referencia ? ` · ${fatura.referencia}` : ""}
-          {economia > 0 ? ` · economia de ${formatarMoeda(economia)}` : ""}
-        </p>
-        {fatura.status !== "paga" ? (
-          <Button
-            size="lg"
-            className="bg-cta text-cta-foreground hover:bg-cta/90"
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
-          >
-            {mutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
-            Pagar Agora
-          </Button>
-        ) : (
-          <span className="text-sm font-semibold text-success">Fatura quitada</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Campo({
-  rotulo,
-  valor,
-  destaque,
-  riscado,
-}: {
-  rotulo: string;
-  valor: string;
-  destaque?: boolean;
-  riscado?: boolean;
-}) {
-  return (
-    <div className="bg-card px-5 py-4">
-      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{rotulo}</dt>
-      <dd
-        className={
-          destaque
-            ? "mt-1 text-2xl font-bold text-primary"
-            : riscado
-              ? "mt-1 text-lg font-medium text-muted-foreground line-through"
-              : "mt-1 text-lg font-semibold text-foreground"
-        }
-      >
-        {valor}
-      </dd>
-    </div>
-  );
-}
 
 function PaginaConsulta() {
   const [telefone, setTelefone] = useState("");
   const [aceite, setAceite] = useState(false);
-  const [resultado, setResultado] = useState<ConsultaResultado | null>(null);
-  const consultar = useServerFn(consultarFaturas);
+  const navigate = useNavigate();
 
   const mutation = useMutation({
-    mutationFn: () => consultar({ data: { telefone } }),
-    onSuccess: (res) => {
-      setResultado(res);
-      if (!res.encontrado) toast.error("Nenhum cadastro encontrado para este telefone.");
-      document.getElementById("resultado")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    mutationFn: async () => {
+      const digitos = somenteDigitos(telefone);
+      if (digitos.length < 10 || digitos.length > 11) throw new Error("Telefone inválido");
+      await navigate({ to: "/fatura/$telefone", params: { telefone: digitos } });
     },
     onError: () => toast.error("Informe um telefone válido com DDD."),
   });
@@ -317,38 +198,6 @@ function PaginaConsulta() {
           </div>
         </div>
       </section>
-
-      {/* RESULTADO */}
-      <div id="resultado" className="mx-auto max-w-4xl px-4">
-        {resultado?.encontrado && resultado.cliente ? (
-          <section className="mt-12 space-y-5">
-            <h2 className="text-xl font-bold text-foreground">Faturas encontradas</h2>
-            {resultado.faturas?.length ? (
-              resultado.faturas.map((f) => (
-                <CardFatura
-                  key={f.id}
-                  fatura={f}
-                  nome={resultado.cliente!.nome}
-                  telefone={resultado.cliente!.telefone}
-                />
-              ))
-            ) : (
-              <p className="rounded-xl border border-border bg-card p-6 text-muted-foreground">
-                Nenhuma fatura registrada para este telefone.
-              </p>
-            )}
-          </section>
-        ) : null}
-
-        {resultado && !resultado.encontrado ? (
-          <section className="mt-12 rounded-xl border border-border bg-card p-8 text-center">
-            <h2 className="text-lg font-semibold text-foreground">Telefone não localizado</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Confira o número digitado (com DDD) ou entre em contato com o atendimento.
-            </p>
-          </section>
-        ) : null}
-      </div>
 
       {/* BENEFÍCIOS */}
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-16 sm:grid-cols-2 lg:grid-cols-4">
