@@ -61,9 +61,12 @@ export const importarClientes = createServerFn({ method: "POST" })
     }));
 
 
-    const { data: resultado, error } = await supabase.rpc("importar_faturas_lote", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: resultado, error } = await supabaseAdmin.rpc("importar_faturas_lote", {
       p_registros: registros,
       p_vencimento: data.vencimento_global,
+      p_actor: userId,
     });
 
     if (error) throw new Error(error.message);
