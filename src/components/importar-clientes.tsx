@@ -447,9 +447,14 @@ export function ImportarClientesDialog({
                 )}
               </div>
 
+              {!vencimentoGlobal && (
+                <p className="text-xs text-destructive">
+                  Escolha a data de vencimento acima para liberar a importação.
+                </p>
+              )}
               <Button
                 className="w-full"
-                disabled={!validas.length || importar.isPending}
+                disabled={!validas.length || !vencimentoGlobal || importar.isPending}
                 onClick={() => importar.mutate()}
               >
                 {importar.isPending ? "Importando..." : `Importar ${validas.length} clientes`}
