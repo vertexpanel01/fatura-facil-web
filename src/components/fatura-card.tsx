@@ -168,12 +168,27 @@ export function CardFatura({
 
       <div className="space-y-5 px-5 py-6">
         {paga ? (
-          <div className="flex items-center justify-center gap-2 rounded-2xl bg-success/10 py-4 text-success">
-            <CheckCircle2 className="size-5" />
-            <span className="text-sm font-bold">Pagamento confirmado — fatura quitada</span>
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-success/10 px-4 py-4 text-center text-success">
+            <CheckCircle2 className="size-5 shrink-0" />
+            <span className="text-sm font-bold">{mensagem}</span>
+          </div>
+        ) : emProcessamento ? (
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-warning/10 px-4 py-4 text-center">
+            <Loader2 className="size-5 shrink-0 animate-spin text-muted-foreground" />
+            <span className="text-sm font-semibold text-foreground">{mensagem}</span>
+          </div>
+        ) : !pagavel ? (
+          <div className="space-y-3 rounded-2xl border border-border bg-secondary/40 px-5 py-6 text-center">
+            <AlertCircle className="mx-auto size-6 text-destructive" />
+            <p className="text-sm font-bold text-foreground">{STATUS_FATURA[status] ?? status}</p>
+            <p className="text-sm text-muted-foreground">{mensagem}</p>
           </div>
         ) : (
           <>
+            <p className="rounded-2xl bg-secondary/40 px-4 py-3 text-center text-sm text-muted-foreground">
+              {mensagem}
+            </p>
+
             <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-center">
               <p className="flex items-center justify-center gap-2 text-sm font-bold text-foreground">
                 <QrCode className="size-4" />
