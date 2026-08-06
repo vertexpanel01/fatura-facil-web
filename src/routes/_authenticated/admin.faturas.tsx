@@ -215,19 +215,83 @@ function PaginaFaturas() {
             Importe a planilha, pesquise por telefone ou nome e gerencie os valores em uma única tela.
           </p>
         </div>
-        <ImportarClientesDialog
-          onSuccess={() => {
-            setBusca("");
-            setPagina(0);
-            void queryClient.invalidateQueries({ queryKey: ["faturas-unificado"] });
-          }}
-        >
-          <Button size="lg" className="gap-2">
-            <Upload className="size-5" />
-            Importar Planilha
+        <div className="flex flex-wrap items-center gap-3">
+          <ImportarClientesDialog
+            onSuccess={() => {
+              setBusca("");
+              setPagina(0);
+              void queryClient.invalidateQueries({ queryKey: ["faturas-unificado"] });
+            }}
+          >
+            <Button size="lg" className="gap-2">
+              <Upload className="size-5" />
+              Importar Planilha
+            </Button>
+          </ImportarClientesDialog>
+          <Button
+            size="lg"
+            variant="destructive"
+            className="gap-2"
+            onClick={() => {
+              setConfirmacaoTexto("");
+              setConfirmandoApagar(true);
+            }}
+          >
+            <Trash2 className="size-5" />
+            Apagar tudo
           </Button>
-        </ImportarClientesDialog>
+        </div>
       </div>
+
+      <Dialog
+        open={confirmandoApagar}
+        onOpenChange={(aberto) => {
+          if (apagarTodos.isPending) return;
+          setConfirmandoApagar(aberto);
+          if (!aberto) setConfirmacaoTexto("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apagar todos os clientes e faturas?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Esta ação é <strong>irreversível</strong> e removerá <strong>todos os clientes, faturas e
+              pagamentos</strong> do banco de dados. Os registros de acessos (métricas) são mantidos.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="confirmar-apagar">
+                Para confirmar, digite <strong>APAGAR</strong>
+              </Label>
+              <Input
+                id="confirmar-apagar"
+                value={confirmacaoTexto}
+                onChange={(e) => setConfirmacaoTexto(e.target.value)}
+                placeholder="APAGAR"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmandoApagar(false)}
+              disabled={apagarTodos.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={confirmacaoTexto.trim().toUpperCase() !== "APAGAR" || apagarTodos.isPending}
+              onClick={() => apagarTodos.mutate()}
+            >
+              {apagarTodos.isPending ? "Apagando..." : "Apagar tudo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
