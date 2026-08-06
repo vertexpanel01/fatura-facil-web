@@ -16,16 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { obterMetricasAcessos } from "@/lib/acessos.functions";
 import { formatarData, formatarMoeda, formatarTelefone } from "@/lib/format";
 
-function formatarDataHora(iso: string) {
-  return new Date(iso).toLocaleString("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 
 export const Route = createFileRoute("/_authenticated/admin/")({
