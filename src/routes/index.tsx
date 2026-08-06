@@ -192,7 +192,7 @@ function PaginaConsulta() {
               </Button>
               <p className="mt-3 flex items-center gap-2 text-xs text-primary-foreground/85">
                 <ShieldCheck className="size-4" />
-                Mostramos apenas os dados vinculados ao CPF informado.
+                Mostramos apenas os dados vinculados ao telefone informado.
               </p>
             </form>
           </div>
