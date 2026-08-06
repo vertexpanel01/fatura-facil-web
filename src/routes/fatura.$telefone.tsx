@@ -5,6 +5,7 @@ import logo from "@/assets/logo-claro.png";
 import { CardFatura } from "@/components/fatura-card";
 import { Button } from "@/components/ui/button";
 import { consultarFaturas } from "@/lib/consulta.functions";
+import type { FaturaPublica } from "@/lib/consulta.functions";
 import { formatarTelefone } from "@/lib/format";
 
 export const Route = createFileRoute("/fatura/$telefone")({
@@ -92,7 +93,7 @@ function PaginaFatura() {
     );
   }
 
-  const faturas = resultado.faturas ?? [];
+  const faturas: FaturaPublica[] = resultado.faturas ?? [];
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -114,7 +115,7 @@ function PaginaFatura() {
         </h2>
 
         {faturas.length ? (
-          faturas.map((f) => (
+          faturas.map((f: FaturaPublica) => (
             <CardFatura
               key={f.id}
               fatura={f}

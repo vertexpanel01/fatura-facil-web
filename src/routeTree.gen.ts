@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as FaturaTelefoneRouteImport } from './routes/fatura.$telefone'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminFaturasRouteImport } from './routes/_authenticated/admin.faturas'
@@ -36,6 +37,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const FaturaTelefoneRoute = FaturaTelefoneRouteImport.update({
+  id: '/fatura/$telefone',
+  path: '/fatura/$telefone',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/fatura/$telefone': typeof FaturaTelefoneRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/fatura/$telefone': typeof FaturaTelefoneRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/fatura/$telefone': typeof FaturaTelefoneRoute
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/_authenticated/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/admin'
+    | '/fatura/$telefone'
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/pagamentos'
@@ -103,6 +113,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/fatura/$telefone'
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/pagamentos'
@@ -113,6 +124,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/admin'
+    | '/fatura/$telefone'
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/faturas'
     | '/_authenticated/admin/pagamentos'
@@ -123,6 +135,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  FaturaTelefoneRoute: typeof FaturaTelefoneRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/fatura/$telefone': {
+      id: '/fatura/$telefone'
+      path: '/fatura/$telefone'
+      fullPath: '/fatura/$telefone'
+      preLoaderRoute: typeof FaturaTelefoneRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -218,17 +238,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  FaturaTelefoneRoute: FaturaTelefoneRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
