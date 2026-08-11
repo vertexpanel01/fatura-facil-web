@@ -204,11 +204,10 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         webhookUrl: `${base}/api/public/cashinpay-webhook`,
       });
 
-        if (!chaveReal) {
-          const msg = "Pagamento indisponível (gateway falhou e sem chave de contingência).";
-          console.error(`[PIX] ${msg} Fatura: ${fatura.id}`);
-          throw new Error("O sistema de pagamentos está em manutenção. Por favor, tente novamente mais tarde.");
-        }
+      if (cobranca) {
+        txid = cobranca.id;
+        copiaCola = cobranca.copia_cola;
+      } else {
         // Contingência: só usa PIX estático quando existe uma chave PIX REAL
         // configurada. Nunca gera código com chave fictícia.
         const chaveReal = process.env["PIX_CHAVE"];
