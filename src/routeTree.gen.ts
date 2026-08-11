@@ -20,6 +20,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminFaturasRouteImport } from './routes/_authenticated/admin.faturas'
 import { Route as AuthenticatedAdminGatewaysRouteImport } from './routes/_authenticated/admin.gateways'
+import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authenticated/admin.logs'
 import { Route as AuthenticatedAdminPagamentosRouteImport } from './routes/_authenticated/admin.pagamentos'
 import { Route as AuthenticatedAdminTransacoesRouteImport } from './routes/_authenticated/admin.transacoes'
 import { Route as ApiPublicCashinpayWebhookRouteImport } from './routes/api/public/cashinpay-webhook'
@@ -85,6 +86,11 @@ const AuthenticatedAdminGatewaysRoute =
     path: '/gateways',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminLogsRoute = AuthenticatedAdminLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminPagamentosRoute =
   AuthenticatedAdminPagamentosRouteImport.update({
     id: '/pagamentos',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/gateways': typeof AuthenticatedAdminGatewaysRoute
+  '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
   '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cashinpay-webhook': typeof ApiPublicCashinpayWebhookRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/gateways': typeof AuthenticatedAdminGatewaysRoute
+  '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
   '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cashinpay-webhook': typeof ApiPublicCashinpayWebhookRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/_authenticated/admin/gateways': typeof AuthenticatedAdminGatewaysRoute
+  '/_authenticated/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/_authenticated/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
   '/_authenticated/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cashinpay-webhook': typeof ApiPublicCashinpayWebhookRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/gateways'
+    | '/admin/logs'
     | '/admin/pagamentos'
     | '/admin/transacoes'
     | '/api/public/cashinpay-webhook'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/faturas'
     | '/admin/gateways'
+    | '/admin/logs'
     | '/admin/pagamentos'
     | '/admin/transacoes'
     | '/api/public/cashinpay-webhook'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/faturas'
     | '/_authenticated/admin/gateways'
+    | '/_authenticated/admin/logs'
     | '/_authenticated/admin/pagamentos'
     | '/_authenticated/admin/transacoes'
     | '/api/public/cashinpay-webhook'
@@ -335,6 +347,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminGatewaysRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/logs': {
+      id: '/_authenticated/admin/logs'
+      path: '/logs'
+      fullPath: '/admin/logs'
+      preLoaderRoute: typeof AuthenticatedAdminLogsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/pagamentos': {
       id: '/_authenticated/admin/pagamentos'
       path: '/pagamentos'
@@ -391,6 +410,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
   AuthenticatedAdminFaturasRoute: typeof AuthenticatedAdminFaturasRoute
   AuthenticatedAdminGatewaysRoute: typeof AuthenticatedAdminGatewaysRoute
+  AuthenticatedAdminLogsRoute: typeof AuthenticatedAdminLogsRoute
   AuthenticatedAdminPagamentosRoute: typeof AuthenticatedAdminPagamentosRoute
   AuthenticatedAdminTransacoesRoute: typeof AuthenticatedAdminTransacoesRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -400,6 +420,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
   AuthenticatedAdminFaturasRoute: AuthenticatedAdminFaturasRoute,
   AuthenticatedAdminGatewaysRoute: AuthenticatedAdminGatewaysRoute,
+  AuthenticatedAdminLogsRoute: AuthenticatedAdminLogsRoute,
   AuthenticatedAdminPagamentosRoute: AuthenticatedAdminPagamentosRoute,
   AuthenticatedAdminTransacoesRoute: AuthenticatedAdminTransacoesRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
