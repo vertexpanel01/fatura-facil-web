@@ -124,7 +124,11 @@ export async function criarCobrancaPix(entrada: {
     ],
   };
 
-  const caminhos = ["/api/v1/transactions", "/v1/transactions", "/api/v1/pix/charges"];
+  // AFILIAXPAY_ENDPOINT permite apontar para o caminho exato da API sem alterar código.
+  const custom = process.env["AFILIAXPAY_ENDPOINT"];
+  const caminhos = custom
+    ? [custom.startsWith("/") ? custom : `/${custom}`]
+    : ["/api/v1/transactions", "/v1/transactions", "/api/v1/pix/charges"];
 
   for (const caminho of caminhos) {
     try {
