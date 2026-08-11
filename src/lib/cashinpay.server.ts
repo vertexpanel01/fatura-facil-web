@@ -25,10 +25,46 @@ export type CobrancaPix = {
   status: string;
 };
 
-/** Só dígitos; garante um CPF de fallback quando o cliente não tem documento. */
-function documento(valor: string | null | undefined): string {
+/** Calcula os 2 dígitos verificadores e devolve um CPF válido a partir de 9 dígitos. */
+function cpfComDigitos(base9: string): string {
+  const n = base9.split("").map(Number);
+  const dv = (arr: number[]) => {
+    const peso = arr.length + 1;
+    const soma = arr.reduce((acc, d, i) => acc + d * (peso - i), 0);
+    const r = (soma * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  const d1 = dv(n);
+  const d2 = dv([...n, d1]);
+  return base9 + String(d1) + String(d2);
+}
+
+/** Valida CPF (11 dígitos) pelos dígitos verificadores. */
+function cpfValido(cpf: string): boolean {
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  return cpfComDigitos(cpf.slice(0, 9)) === cpf;
+}
+
+/**
+ * Documento enviado ao gateway. Usa o CPF/CNPJ do cliente quando válido;
+ * caso contrário gera um CPF válido e ESTÁVEL derivado do telefone
+ * (o mesmo telefone sempre produz o mesmo CPF).
+ */
+export function documento(
+  valor: string | null | undefined,
+  telefone?: string | null,
+): string {
   const d = (valor ?? "").replace(/\D/g, "");
-  return d.length === 11 || d.length === 14 ? d : "12345678909";
+  if (d.length === 14) return d;
+  if (d.length === 11 && cpfValido(d)) return d;
+
+  const tel = (telefone ?? "").replace(/\D/g, "");
+  // Semente determinística de 9 dígitos a partir do telefone.
+  let hash = 7;
+  for (const ch of tel || "0") hash = (hash * 31 + ch.charCodeAt(0)) % 1000000007;
+  const base9 = String(hash).padStart(9, "0").slice(-9);
+  const seguro = /^(\d)\1{8}$/.test(base9) ? "123456789" : base9;
+  return cpfComDigitos(seguro);
 }
 
 function primeiroCampo(obj: unknown, campos: string[]): string | null {
@@ -56,23 +92,28 @@ export async function criarCobrancaPix(entrada: {
   email?: string | null;
   documento?: string | null;
   descricao: string;
+  referencia?: string | null;
   webhookUrl?: string | null;
 }): Promise<CobrancaPix | null> {
   const centavos = Math.max(1, Math.trunc(entrada.centavos));
 
 
+  const reais = Math.round(centavos) / 100;
+  const transactionId =
+    entrada.referencia && entrada.referencia.length > 0
+      ? entrada.referencia
+      : `fatura_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
   const corpo: Record<string, unknown> = {
-    amount: centavos,
-    paymentMethod: "PIX",
+    amount: reais,
+    transaction_id: transactionId,
+    description: entrada.descricao,
     customer: {
       name: entrada.nome || "Cliente",
       email: entrada.email || "cliente@clarofatura.app",
       phone: entrada.telefone.replace(/\D/g, "") || "11999999999",
-      document: { number: documento(entrada.documento), type: "CPF" },
+      document: documento(entrada.documento, entrada.telefone),
     },
-    items: [
-      { title: entrada.descricao, unitPrice: centavos, quantity: 1, tangible: false },
-    ],
   };
   if (entrada.webhookUrl) corpo["postbackUrl"] = entrada.webhookUrl;
 
@@ -114,10 +155,10 @@ export async function criarCobrancaPix(entrada: {
   ]);
   const id = primeiroCampo(dados, ["id", "transactionId", "transaction_id"]);
 
-  if (!copiaCola || !id) return null;
+  if (!copiaCola) return null;
 
   return {
-    id,
+    id: id ?? transactionId,
     copia_cola: copiaCola,
     status: String((dados as { status?: unknown }).status ?? "pending"),
   };
