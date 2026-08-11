@@ -570,6 +570,7 @@ export type Database = {
       }
     }
     Functions: {
+      avancar_ponteiro_gateway: { Args: { p_total: number }; Returns: number }
       importar_faturas_lote: {
         Args: { p_actor: string; p_registros: Json; p_vencimento: string }
         Returns: Json
