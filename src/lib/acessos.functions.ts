@@ -115,15 +115,27 @@ export const obterMetricasAcessos = createServerFn({ method: "GET" })
       consultas_hoje: 0,
       faturas_visualizadas_total: 0,
       valor_visualizado_total: 0,
-      recentes: registros.slice(0, 20).map((r) => ({
+      recentes: [],
+    };
+
+    // Últimos acessos: um registro por telefone (o mais recente).
+    const telefonesRecentes = new Set<string>();
+    for (const r of registros) {
+      if (m.recentes.length >= 20) break;
+      if (r.telefone_consultado) {
+        if (telefonesRecentes.has(r.telefone_consultado)) continue;
+        telefonesRecentes.add(r.telefone_consultado);
+      }
+      m.recentes.push({
         id: r.id,
         data_hora: r.data_hora,
         pagina: r.pagina,
         telefone_consultado: r.telefone_consultado,
         sucesso: r.sucesso,
         valor_desconto: r.valor_desconto === null ? null : Number(r.valor_desconto),
-      })),
-    };
+      });
+    }
+
 
     // Percorre do mais antigo para o mais recente: a primeira consulta
     // bem-sucedida de cada telefone é a que conta no período.
