@@ -14,7 +14,7 @@ export type GatewayConfig = {
 
 function estaConfigurado(slug: string): boolean {
   if (slug === "cashinpay") return Boolean(process.env["CASHINPAY_SECRET_KEY"]);
-  if (slug === "pushinpay") return Boolean(process.env["PUSHINPAY_TOKEN"]);
+  if (slug === "afiliaxpay") return Boolean(process.env["AFILIAXPAY_SECRET_KEY"]);
   if (slug === "pix-estatico") return Boolean(process.env["PIX_CHAVE"]);
   return false;
 }

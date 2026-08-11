@@ -52,14 +52,21 @@ async function tentar(slug: string, dados: DadosCobranca): Promise<CobrancaGatew
     return cobranca ? { gateway: slug, ...cobranca } : null;
   }
 
-  if (slug === "pushinpay") {
-    const { criarCobrancaPix } = await import("@/lib/pushinpay.server");
+  if (slug === "afiliaxpay") {
+    const { criarCobrancaPix } = await import("@/lib/afiliaxpay.server");
     const cobranca = await criarCobrancaPix({
       centavos: dados.centavos,
+      nome: dados.nome,
+      telefone: dados.telefone,
+      email: dados.email ?? null,
+      documento: dados.documento ?? null,
+      descricao: dados.descricao,
+      referencia: dados.referencia ?? null,
       webhookUrl: `${dados.baseUrl}/api/public/pix-webhook`,
     });
     return cobranca ? { gateway: slug, ...cobranca } : null;
   }
+
 
   if (slug === "pix-estatico") {
     const chave = process.env["PIX_CHAVE"];
