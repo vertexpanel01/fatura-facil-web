@@ -191,11 +191,18 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         txid = cobranca.id;
         copiaCola = cobranca.copia_cola;
       } else {
-        // Contingência: PIX estático caso o gateway esteja indisponível.
+        // Contingência: só usa PIX estático quando existe uma chave PIX REAL
+        // configurada. Nunca gera código com chave fictícia.
+        const chaveReal = process.env["PIX_CHAVE"];
+        if (!chaveReal) {
+          throw new Error(
+            "Pagamento indisponível no momento. Tente novamente em alguns minutos.",
+          );
+        }
         gateway = "pix-estatico";
         txid = novoTxid();
         copiaCola = gerarBrCode({
-          chave: process.env["PIX_CHAVE"] ?? "pagamentos@faturamovel.com.br",
+          chave: chaveReal,
           valor,
           nome: process.env["PIX_RECEBEDOR"] ?? "FATURA MOVEL",
           cidade: process.env["PIX_CIDADE"] ?? "SAO PAULO",
@@ -208,6 +215,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         .update({ pix_txid: txid, pix_copia_cola: copiaCola })
         .eq("id", fatura.id);
     }
+
 
     const { data: existente } = await supabaseAdmin
       .from("pagamentos")

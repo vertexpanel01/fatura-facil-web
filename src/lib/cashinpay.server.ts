@@ -86,11 +86,20 @@ export async function criarCobrancaPix(entrada: {
     return null;
   }
 
-  const json = (await resposta.json().catch(() => null)) as
-    | { success?: boolean; data?: unknown; error?: { message?: string } }
-    | null;
+  const bruto = await resposta.text().catch(() => "");
+  const json = (() => {
+    try {
+      return JSON.parse(bruto) as { success?: boolean; data?: unknown; error?: { message?: string } };
+    } catch {
+      return null;
+    }
+  })();
 
-  if (!resposta.ok || !json?.success) return null;
+  if (!resposta.ok || !json?.success) {
+    console.error("[cashinpay] falha ao criar cobrança", resposta.status, bruto.slice(0, 500));
+    return null;
+  }
+
 
   const dados = (json.data ?? json) as Record<string, unknown>;
   const copiaCola = primeiroCampo(dados, [
