@@ -152,7 +152,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
     const { data: fatura, error } = await supabaseAdmin
       .from("faturas")
       .select(
-        "id, cliente_id, descricao, valor_original, valor_desconto, status, pix_txid, pix_copia_cola",
+        "id, cliente_id, descricao, valor_original, valor_desconto, status, pix_txid, pix_copia_cola, pix_valor_centavos",
       )
       .eq("id", data.fatura_id)
       .maybeSingle();
