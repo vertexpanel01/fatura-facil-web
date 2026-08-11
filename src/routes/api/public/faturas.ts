@@ -11,7 +11,7 @@ const querySchema = z.object({
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Max-Age": "86400",
 };
 
@@ -20,8 +20,15 @@ export const Route = createFileRoute("/api/public/faturas")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: cors }),
       GET: async ({ request }) => {
+        const { requireAdminFromRequest } = await import("@/lib/api-auth.server");
+        const adminId = await requireAdminFromRequest(request);
+        if (!adminId) {
+          return Response.json({ erro: "Não autorizado." }, { status: 401, headers: cors });
+        }
+
         const url = new URL(request.url);
         const parsed = querySchema.safeParse({ telefone: url.searchParams.get("telefone") ?? "" });
+
 
         if (!parsed.success) {
           return Response.json(
