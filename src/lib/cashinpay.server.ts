@@ -137,9 +137,9 @@ export async function criarCobrancaPix(entrada: {
   // primeira resposta se perde (por exemplo, após um 502).
   // Mantém o identificador curto: o gateway limita/trunca IDs longos, o que
   // fazia referências diferentes terminarem como o mesmo ID duplicado.
-  const transactionId = `fat_${Date.now().toString(36)}_${Math.random()
-    .toString(36)
-    .slice(2, 10)}`;
+  const novoTransactionId = () =>
+    `f${crypto.randomUUID().replaceAll("-", "").slice(0, 18)}`;
+  const transactionId = novoTransactionId();
 
   const corpo: Record<string, unknown> = {
     amount: reais,
@@ -164,7 +164,7 @@ export async function criarCobrancaPix(entrada: {
   let idUsado = transactionId;
 
   for (let tentativa = 0; tentativa < 4; tentativa++) {
-    idUsado = tentativa === 0 ? transactionId : `${transactionId}_r${tentativa}`;
+    idUsado = tentativa === 0 ? transactionId : novoTransactionId();
     corpo["transaction_id"] = idUsado;
 
     let resposta: Response;
