@@ -47,7 +47,8 @@ export const listarTransacoes = createServerFn({ method: "POST" })
     const { data: linhas, error } = await consulta;
     if (error) throw new Error("Não foi possível carregar as transações.");
 
-    const mapear = (t: (typeof linhas extends (infer U)[] ? U : never)): TransacaoAdmin => ({
+    type Linha = NonNullable<typeof linhas>[number];
+    const mapear = (t: Linha): TransacaoAdmin => ({
       id: t.id,
       fatura_id: t.fatura_id,
       gateway_slug: t.gateway_slug,
