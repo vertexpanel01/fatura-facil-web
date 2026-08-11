@@ -168,3 +168,25 @@ export const obterMetricasAcessos = createServerFn({ method: "GET" })
 
     return m;
   });
+
+/** Apaga todo o histórico de acessos/consultas — apenas administradores. */
+export const limparAcessos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ removidos: number }> => {
+    const { data: papel, error: erroPapel } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (erroPapel || !papel) throw new Error("Acesso restrito a administradores.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("acessos")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000")
+      .select("id");
+    if (error) throw new Error(`Erro ao limpar histórico: ${error.message}`);
+    return { removidos: data?.length ?? 0 };
+  });

@@ -1,17 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
   BarChart3,
   CalendarDays,
   Coins,
   ReceiptText,
+  Trash2,
   Users,
   UserCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { obterMetricasAcessos } from "@/lib/acessos.functions";
+import { limparAcessos, obterMetricasAcessos } from "@/lib/acessos.functions";
 import { formatarData, formatarMoeda, formatarTelefone } from "@/lib/format";
 
 
@@ -72,6 +75,14 @@ function Dashboard() {
   }, [queryClient]);
 
 
+  const limpar = useMutation({
+    mutationFn: () => limparAcessos(),
+    onSuccess: (res) => {
+      toast.success(`Histórico limpo: ${res.removidos} registro(s) removido(s).`);
+      queryClient.invalidateQueries({ queryKey: ["metricas-acessos"] });
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível limpar o histórico."),
+  });
 
   return (
     <div className="space-y-8">
@@ -92,12 +103,32 @@ function Dashboard() {
       </div>
 
       <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Métricas de acesso</h2>
-          <p className="text-sm text-muted-foreground">
-            Atualização em tempo real · visível apenas aqui no painel administrativo.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Métricas de acesso</h2>
+            <p className="text-sm text-muted-foreground">
+              Atualização em tempo real · visível apenas aqui no painel administrativo.
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={limpar.isPending}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Apagar todo o histórico de consultas e visitas do site? Esta ação é irreversível.",
+                )
+              ) {
+                limpar.mutate();
+              }
+            }}
+          >
+            <Trash2 className="size-4" />
+            {limpar.isPending ? "Limpando..." : "Limpar histórico"}
+          </Button>
         </div>
+
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Cartao
