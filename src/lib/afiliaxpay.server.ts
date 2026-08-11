@@ -87,8 +87,8 @@ export async function criarCobrancaPix(entrada: {
   referencia?: string | null;
   webhookUrl?: string | null;
 }): Promise<CobrancaPix | null> {
-  const auth = autorizacao();
-  if (!auth) return null;
+  const headers = cabecalhos();
+  if (!headers) return null;
 
   const centavos = Math.max(1, Math.trunc(entrada.centavos));
   const telefone = entrada.telefone.replace(/\D/g, "");
@@ -130,11 +130,7 @@ export async function criarCobrancaPix(entrada: {
     try {
       const resposta = await fetch(`${base()}${caminho}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: auth,
-        },
+        headers,
         body: JSON.stringify(corpo),
       });
 
