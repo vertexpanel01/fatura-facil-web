@@ -147,31 +147,52 @@ export type Database = {
       }
       gateways_config: {
         Row: {
+          adapter: string
+          ambiente: string
+          api_url: string | null
           ativo: boolean
           created_at: string
           id: string
+          limite_diario: number | null
+          observacoes: string | null
           prioridade: number
           rotulo: string
+          secret_names: string[]
           slug: string
           updated_at: string
+          webhook_url: string | null
         }
         Insert: {
+          adapter?: string
+          ambiente?: string
+          api_url?: string | null
           ativo?: boolean
           created_at?: string
           id?: string
+          limite_diario?: number | null
+          observacoes?: string | null
           prioridade?: number
           rotulo: string
+          secret_names?: string[]
           slug: string
           updated_at?: string
+          webhook_url?: string | null
         }
         Update: {
+          adapter?: string
+          ambiente?: string
+          api_url?: string | null
           ativo?: boolean
           created_at?: string
           id?: string
+          limite_diario?: number | null
+          observacoes?: string | null
           prioridade?: number
           rotulo?: string
+          secret_names?: string[]
           slug?: string
           updated_at?: string
+          webhook_url?: string | null
         }
         Relationships: []
       }
@@ -239,6 +260,36 @@ export type Database = {
           },
         ]
       }
+      pagamentos_log: {
+        Row: {
+          created_at: string
+          fatura_id: string | null
+          gateway_slug: string
+          http_status: number | null
+          id: string
+          mensagem: string
+          nivel: string
+        }
+        Insert: {
+          created_at?: string
+          fatura_id?: string | null
+          gateway_slug: string
+          http_status?: number | null
+          id?: string
+          mensagem: string
+          nivel?: string
+        }
+        Update: {
+          created_at?: string
+          fatura_id?: string | null
+          gateway_slug?: string
+          http_status?: number | null
+          id?: string
+          mensagem?: string
+          nivel?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -263,6 +314,127 @@ export type Database = {
         }
         Relationships: []
       }
+      roteamento_config: {
+        Row: {
+          created_at: string
+          estrategia: string
+          gateway_fixa: string | null
+          id: boolean
+          ponteiro: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estrategia?: string
+          gateway_fixa?: string | null
+          id?: boolean
+          ponteiro?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estrategia?: string
+          gateway_fixa?: string | null
+          id?: boolean
+          ponteiro?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roteamento_config_gateway_fixa_fkey"
+            columns: ["gateway_fixa"]
+            isOneToOne: false
+            referencedRelation: "gateways_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transacoes_pix: {
+        Row: {
+          cliente_id: string | null
+          copia_cola: string | null
+          created_at: string
+          expira_em: string | null
+          fatura_id: string
+          gateway_id: string | null
+          gateway_slug: string
+          id: string
+          idempotency_key: string
+          pago_em: string | null
+          qrcode: string | null
+          status: string
+          transacao_gateway_id: string | null
+          updated_at: string
+          valor_centavos: number
+          webhook_id: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          copia_cola?: string | null
+          created_at?: string
+          expira_em?: string | null
+          fatura_id: string
+          gateway_id?: string | null
+          gateway_slug: string
+          id?: string
+          idempotency_key: string
+          pago_em?: string | null
+          qrcode?: string | null
+          status?: string
+          transacao_gateway_id?: string | null
+          updated_at?: string
+          valor_centavos: number
+          webhook_id?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          copia_cola?: string | null
+          created_at?: string
+          expira_em?: string | null
+          fatura_id?: string
+          gateway_id?: string | null
+          gateway_slug?: string
+          id?: string
+          idempotency_key?: string
+          pago_em?: string | null
+          qrcode?: string | null
+          status?: string
+          transacao_gateway_id?: string | null
+          updated_at?: string
+          valor_centavos?: number
+          webhook_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transacoes_pix_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_pix_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transacoes_pix_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas_por_telefone"
+            referencedColumns: ["fatura_id"]
+          },
+          {
+            foreignKeyName: "transacoes_pix_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "gateways_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -281,6 +453,36 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhooks_log: {
+        Row: {
+          assinatura_valida: boolean
+          created_at: string
+          evento: string | null
+          gateway_slug: string
+          id: string
+          resumo: string | null
+          transacao_gateway_id: string | null
+        }
+        Insert: {
+          assinatura_valida?: boolean
+          created_at?: string
+          evento?: string | null
+          gateway_slug: string
+          id?: string
+          resumo?: string | null
+          transacao_gateway_id?: string | null
+        }
+        Update: {
+          assinatura_valida?: boolean
+          created_at?: string
+          evento?: string | null
+          gateway_slug?: string
+          id?: string
+          resumo?: string | null
+          transacao_gateway_id?: string | null
         }
         Relationships: []
       }
