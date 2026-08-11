@@ -50,7 +50,7 @@ function primeiroCampo(obj: unknown, campos: string[]): string | null {
  * indisponível — nesse caso o sistema cai no PIX estático de contingência.
  */
 export async function criarCobrancaPix(entrada: {
-  valor: number; // em reais (valor com desconto)
+  centavos: number; // valor com desconto, já em centavos (inteiro)
   nome: string;
   telefone: string;
   email?: string | null;
@@ -58,7 +58,8 @@ export async function criarCobrancaPix(entrada: {
   descricao: string;
   webhookUrl?: string | null;
 }): Promise<CobrancaPix | null> {
-  const centavos = Math.max(1, Math.round(entrada.valor * 100));
+  const centavos = Math.max(1, Math.trunc(entrada.centavos));
+
 
   const corpo: Record<string, unknown> = {
     amount: centavos,
