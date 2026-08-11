@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, FileText, LogOut, Receipt } from "lucide-react";
+import { BarChart3, FileText, LogOut, Receipt, Shuffle } from "lucide-react";
 
 import logo from "@/assets/logo-claro.png";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ const itens = [
   { to: "/admin", label: "Dashboard", icon: BarChart3, exact: true },
   { to: "/admin/faturas", label: "Clientes e Faturas", icon: FileText, exact: false },
   { to: "/admin/pagamentos", label: "Pagamentos", icon: Receipt, exact: false },
+  { to: "/admin/gateways", label: "Gateways", icon: Shuffle, exact: false },
 ] as const;
 
 function LayoutAdmin() {

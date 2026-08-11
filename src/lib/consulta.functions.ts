@@ -148,8 +148,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => pagamentoSchema.parse(data))
   .handler(async ({ data }): Promise<PixGerado> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { gerarBrCode, novoTxid } = await import("@/lib/pix.server");
-    const { criarCobrancaPix } = await import("@/lib/cashinpay.server");
+    const { criarCobranca } = await import("@/lib/gateway-router.server");
 
     const { data: fatura, error } = await supabaseAdmin
       .from("faturas")
@@ -193,7 +192,8 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
 
       const base = process.env["SITE_URL"] ?? "https://clarofatura.app";
 
-      const cobranca = await criarCobrancaPix({
+      // Percorre os gateways ativos (rotação) até um deles gerar o PIX.
+      const cobranca = await criarCobranca({
         centavos,
         nome: cliente?.nome ?? "Cliente",
         telefone: cliente?.telefone ?? "",
@@ -201,36 +201,24 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         documento: cliente?.documento ?? null,
         descricao: fatura.descricao || "Fatura",
         referencia: `fatura_${fatura.id}_${centavos}`,
-        webhookUrl: `${base}/api/public/cashinpay-webhook`,
+        baseUrl: base,
       });
 
       if (cobranca) {
+        gateway = cobranca.gateway;
         txid = cobranca.id;
         copiaCola = cobranca.copia_cola;
       } else {
-        // Contingência: só usa PIX estático quando existe uma chave PIX REAL
-        // configurada. Nunca gera código com chave fictícia.
-        const chaveReal = process.env["PIX_CHAVE"];
-        if (!chaveReal) {
-          return {
-            valor,
-            copia_cola: "",
-            txid: "",
-            status: fatura.status as string,
-            disponivel: false,
-            mensagem: "Pagamento indisponível no momento. Tente novamente em alguns minutos.",
-          };
-        }
-        gateway = "pix-estatico";
-        txid = novoTxid();
-        copiaCola = gerarBrCode({
-          chave: chaveReal,
+        return {
           valor,
-          nome: process.env["PIX_RECEBEDOR"] ?? "FATURA MOVEL",
-          cidade: process.env["PIX_CIDADE"] ?? "SAO PAULO",
-          txid,
-        });
+          copia_cola: "",
+          txid: "",
+          status: fatura.status as string,
+          disponivel: false,
+          mensagem: "Pagamento indisponível no momento. Tente novamente em alguns minutos.",
+        };
       }
+
 
       await supabaseAdmin
         .from("faturas")
