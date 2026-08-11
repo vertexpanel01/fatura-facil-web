@@ -216,9 +216,10 @@ export function CardFatura({
                   <img src={qr} alt="QR Code para pagamento PIX da fatura" className="size-full" />
                 ) : (
                   <p className="px-4 text-xs text-muted-foreground">
-                    {pix.error
-                      ? "Pagamento indisponível no momento. Tente novamente em alguns minutos."
-                      : "Não foi possível gerar o QR Code agora."}
+                    {pix.data?.mensagem ??
+                      (pix.error
+                        ? "Pagamento indisponível no momento. Tente novamente em alguns minutos."
+                        : "Não foi possível gerar o QR Code agora.")}
                   </p>
                 )}
               </div>

@@ -81,6 +81,39 @@ function primeiroCampo(obj: unknown, campos: string[]): string | null {
   return null;
 }
 
+async function recuperarCobranca(id: string): Promise<CobrancaPix | null> {
+  try {
+    const resposta = await fetch(`${BASE}/transactions/${encodeURIComponent(id)}`, {
+      headers: headers(),
+    });
+    const json = (await resposta.json().catch(() => null)) as
+      | { success?: boolean; data?: unknown }
+      | null;
+    if (!resposta.ok || !json?.success) return null;
+
+    const dados = (json.data ?? json) as Record<string, unknown>;
+    const copiaCola = primeiroCampo(dados, [
+      "copy_paste",
+      "qrcode",
+      "qrCode",
+      "pixCode",
+      "copyPaste",
+      "emv",
+      "payload",
+      "brcode",
+    ]);
+    if (!copiaCola) return null;
+
+    return {
+      id: primeiroCampo(dados, ["id", "transactionId", "transaction_id"]) ?? id,
+      copia_cola: copiaCola,
+      status: String((dados as { status?: unknown }).status ?? "pending"),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Cria uma cobrança PIX dinâmica. Devolve null quando o gateway está
  * indisponível — nesse caso o sistema cai no PIX estático de contingência.
@@ -99,14 +132,8 @@ export async function criarCobrancaPix(entrada: {
 
 
   const reais = Math.round(centavos) / 100;
-  const transactionId =
-    entrada.referencia && entrada.referencia.length > 0
-      ? entrada.referencia
-      : `fatura_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
   const corpo: Record<string, unknown> = {
     amount: reais,
-    transaction_id: transactionId,
     description: entrada.descricao,
     customer: {
       name: entrada.nome || "Cliente",
@@ -117,19 +144,16 @@ export async function criarCobrancaPix(entrada: {
   };
   if (entrada.webhookUrl) corpo["postbackUrl"] = entrada.webhookUrl;
 
-  // O gateway retorna 502 de forma intermitente: tentamos algumas vezes,
-  // com um sufixo novo no transaction_id a cada retentativa.
+  // O gateway retorna falhas intermitentes: tentamos novamente deixando que
+  // ele gere seu próprio identificador, pois transaction_id é opcional.
   let bruto = "";
   let json:
     | { success?: boolean; data?: unknown; error?: { message?: string } }
     | null = null;
   let ultimoStatus = 0;
-  let idUsado = transactionId;
+  let respostaValida = false;
 
   for (let tentativa = 0; tentativa < 4; tentativa++) {
-    idUsado = tentativa === 0 ? transactionId : `${transactionId}_r${tentativa}`;
-    corpo["transaction_id"] = idUsado;
-
     let resposta: Response;
     try {
       resposta = await fetch(`${BASE}/transactions`, {
@@ -156,20 +180,32 @@ export async function criarCobrancaPix(entrada: {
       }
     })();
 
-    if (resposta.ok && json?.success) break;
+    if (resposta.ok && json && !json.error) {
+      respostaValida = true;
+      break;
+    }
 
     console.error(
       "[cashinpay] falha ao criar cobrança",
       resposta.status,
       bruto.slice(0, 300),
     );
+    const codigoErro = json?.error?.message ?? "";
+    const transacaoDuplicada =
+      resposta.status === 409 ||
+      codigoErro.toLowerCase().includes("transacao ja existe") ||
+      bruto.toLowerCase().includes("duplicate_transaction_id");
     json = null;
-    // Erros de validação (4xx) não adianta repetir.
-    if (resposta.status >= 400 && resposta.status < 500) return null;
+    // Uma tentativa anterior pode ter sido criada mesmo quando o gateway
+    // respondeu 502. Nesse caso, tenta novamente com o sufixo seguinte.
+    // Outros 4xx são erros de validação e não devem ser repetidos.
+    if (resposta.status >= 400 && resposta.status < 500 && !transacaoDuplicada) {
+      return null;
+    }
     await new Promise((r) => setTimeout(r, 400 * (tentativa + 1)));
   }
 
-  if (!json?.success) {
+  if (!respostaValida || !json) {
     console.error("[cashinpay] cobrança não criada após retentativas", ultimoStatus);
     return null;
   }
@@ -178,6 +214,7 @@ export async function criarCobrancaPix(entrada: {
 
   const dados = (json.data ?? json) as Record<string, unknown>;
   const copiaCola = primeiroCampo(dados, [
+    "copy_paste",
     "qrcode",
     "qrCode",
     "pixCode",
@@ -191,7 +228,7 @@ export async function criarCobrancaPix(entrada: {
   if (!copiaCola) return null;
 
   return {
-    id: id ?? idUsado,
+    id: id ?? "",
     copia_cola: copiaCola,
     status: String((dados as { status?: unknown }).status ?? "pending"),
   };
