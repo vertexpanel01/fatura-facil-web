@@ -2,9 +2,9 @@
  * Integração com o gateway AfiliaxPay (https://app.afiliaxpay.com).
  *
  * Credenciais (secrets):
- *  - AFILIAXPAY_SECRET_KEY  (obrigatória)
- *  - AFILIAXPAY_PUBLIC_KEY  (opcional — quando a conta usa Basic auth public:secret)
- *  - AFILIAXPAY_BASE_URL    (opcional — padrão https://api.afiliaxpay.com)
+ *  - AFILIAXPAY_TOKEN     (token público / chave de identificação)
+ *  - AFILIAXPAY_SECRET    (chave secreta)
+ *  - AFILIAXPAY_BASE_URL  (opcional — padrão https://api.afiliaxpay.com)
  *
  * Os valores trafegam SEMPRE em centavos e SEMPRE com o valor com desconto.
  */
@@ -19,19 +19,31 @@ function base(): string {
   return (process.env["AFILIAXPAY_BASE_URL"] ?? "https://api.afiliaxpay.com").replace(/\/+$/, "");
 }
 
-function autorizacao(): string | null {
-  const secret = process.env["AFILIAXPAY_SECRET_KEY"];
-  if (!secret) return null;
-  const publica = process.env["AFILIAXPAY_PUBLIC_KEY"];
-  if (publica) {
-    return `Basic ${Buffer.from(`${publica}:${secret}`).toString("base64")}`;
-  }
-  return `Bearer ${secret}`;
+function credenciais(): { token: string; secret: string } | null {
+  const token = process.env["AFILIAXPAY_TOKEN"];
+  const secret = process.env["AFILIAXPAY_SECRET"];
+  if (!token || !secret) return null;
+  return { token, secret };
+}
+
+/** Cabeçalhos aceitos pelos formatos mais comuns dessa família de gateways. */
+function cabecalhos(): Record<string, string> | null {
+  const cred = credenciais();
+  if (!cred) return null;
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: `Basic ${Buffer.from(`${cred.token}:${cred.secret}`).toString("base64")}`,
+    "x-public-key": cred.token,
+    "x-secret-key": cred.secret,
+    "x-api-token": cred.token,
+  };
 }
 
 export function configurado(): boolean {
-  return Boolean(process.env["AFILIAXPAY_SECRET_KEY"]);
+  return credenciais() !== null;
 }
+
 
 /** Procura o código copia-e-cola em qualquer formato de resposta. */
 function extrairCopiaCola(valor: unknown, profundidade = 0): string {
@@ -75,8 +87,8 @@ export async function criarCobrancaPix(entrada: {
   referencia?: string | null;
   webhookUrl?: string | null;
 }): Promise<CobrancaPix | null> {
-  const auth = autorizacao();
-  if (!auth) return null;
+  const headers = cabecalhos();
+  if (!headers) return null;
 
   const centavos = Math.max(1, Math.trunc(entrada.centavos));
   const telefone = entrada.telefone.replace(/\D/g, "");
@@ -118,11 +130,7 @@ export async function criarCobrancaPix(entrada: {
     try {
       const resposta = await fetch(`${base()}${caminho}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: auth,
-        },
+        headers,
         body: JSON.stringify(corpo),
       });
 
