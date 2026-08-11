@@ -162,13 +162,21 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
       return { valor: 0, copia_cola: "", txid: fatura.pix_txid ?? "", status: "paga" };
     }
 
-    const valor = Number(fatura.valor_desconto) || Number(fatura.valor_original);
+    // Valor exato com desconto, convertido uma única vez para centavos.
+    const bruto = Number(fatura.valor_desconto) || Number(fatura.valor_original);
+    const centavos = Math.max(1, Math.round(bruto * 100));
+    const valor = centavos / 100;
 
     let txid = fatura.pix_txid ?? "";
     let copiaCola = fatura.pix_copia_cola ?? "";
     let gateway = "cashinpay";
 
-    if (!txid || !copiaCola) {
+    const centavosSalvos = (fatura as { pix_valor_centavos?: number | null })
+      .pix_valor_centavos;
+
+    if (!txid || !copiaCola || centavosSalvos !== centavos) {
+      txid = "";
+      copiaCola = "";
       const { data: cliente } = await supabaseAdmin
         .from("clientes")
         .select("nome, telefone, email, documento")
@@ -178,7 +186,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
       const base = process.env["SITE_URL"] ?? "https://clarofatura.app";
 
       const cobranca = await criarCobrancaPix({
-        valor,
+        centavos,
         nome: cliente?.nome ?? "Cliente",
         telefone: cliente?.telefone ?? "",
         email: cliente?.email ?? null,
@@ -212,9 +220,14 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
 
       await supabaseAdmin
         .from("faturas")
-        .update({ pix_txid: txid, pix_copia_cola: copiaCola })
+        .update({
+          pix_txid: txid,
+          pix_copia_cola: copiaCola,
+          pix_valor_centavos: centavos,
+        })
         .eq("id", fatura.id);
     }
+
 
 
     const { data: existente } = await supabaseAdmin
