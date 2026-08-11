@@ -137,36 +137,30 @@ export type PixGerado = {
   txid: string;
   status: string;
   disponivel: boolean;
+  gateway?: string;
+  expira_em?: string | null;
   mensagem?: string;
 };
 
 /**
- * Gera (ou reaproveita) a cobrança PIX da fatura.
- * O valor enviado é SEMPRE o valor com desconto.
+ * Gera (ou reaproveita) a cobrança PIX exclusiva da fatura através do
+ * Payment Router. O valor enviado é SEMPRE o valor com desconto.
  */
 export const gerarPixFatura = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => pagamentoSchema.parse(data))
   .handler(async ({ data }): Promise<PixGerado> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { criarCobranca } = await import("@/lib/gateway-router.server");
+    const { criarCobrancaPix } = await import("@/lib/payment-router.server");
 
     const { data: fatura, error } = await supabaseAdmin
       .from("faturas")
-      .select(
-        "id, cliente_id, descricao, valor_original, valor_desconto, status, pix_txid, pix_copia_cola, pix_valor_centavos",
-      )
+      .select("id, cliente_id, descricao, valor_original, valor_desconto, status")
       .eq("id", data.fatura_id)
       .maybeSingle();
 
     if (error || !fatura) throw new Error("Fatura não encontrada.");
     if (fatura.status === "paga") {
-      return {
-        valor: 0,
-        copia_cola: "",
-        txid: fatura.pix_txid ?? "",
-        status: "paga",
-        disponivel: false,
-      };
+      return { valor: 0, copia_cola: "", txid: "", status: "paga", disponivel: false };
     }
 
     // Valor exato com desconto, convertido uma única vez para centavos.
@@ -174,72 +168,53 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
     const centavos = Math.max(1, Math.round(bruto * 100));
     const valor = centavos / 100;
 
-    let txid = fatura.pix_txid ?? "";
-    let copiaCola = fatura.pix_copia_cola ?? "";
-    let gateway = "cashinpay";
+    const { data: cliente } = await supabaseAdmin
+      .from("clientes")
+      .select("nome, telefone, email, documento")
+      .eq("id", fatura.cliente_id)
+      .maybeSingle();
 
-    const centavosSalvos = (fatura as { pix_valor_centavos?: number | null })
-      .pix_valor_centavos;
+    const transacao = await criarCobrancaPix({
+      faturaId: fatura.id,
+      clienteId: fatura.cliente_id,
+      centavos,
+      nome: cliente?.nome ?? "Cliente",
+      telefone: cliente?.telefone ?? "",
+      email: cliente?.email ?? null,
+      documento: cliente?.documento ?? null,
+      descricao: fatura.descricao || "Fatura",
+      baseUrl: process.env["SITE_URL"] ?? "https://clarofatura.app",
+    });
 
-    if (!txid || !copiaCola || centavosSalvos !== centavos) {
-      txid = "";
-      copiaCola = "";
-      const { data: cliente } = await supabaseAdmin
-        .from("clientes")
-        .select("nome, telefone, email, documento")
-        .eq("id", fatura.cliente_id)
-        .maybeSingle();
-
-      const base = process.env["SITE_URL"] ?? "https://clarofatura.app";
-
-      // Percorre os gateways ativos (rotação) até um deles gerar o PIX.
-      const cobranca = await criarCobranca({
-        centavos,
-        nome: cliente?.nome ?? "Cliente",
-        telefone: cliente?.telefone ?? "",
-        email: cliente?.email ?? null,
-        documento: cliente?.documento ?? null,
-        descricao: fatura.descricao || "Fatura",
-        referencia: `fatura_${fatura.id}_${centavos}`,
-        baseUrl: base,
-      });
-
-      if (cobranca) {
-        gateway = cobranca.gateway;
-        txid = cobranca.id;
-        copiaCola = cobranca.copia_cola;
-      } else {
-        return {
-          valor,
-          copia_cola: "",
-          txid: "",
-          status: fatura.status as string,
-          disponivel: false,
-          mensagem: "Pagamento indisponível no momento. Tente novamente em alguns minutos.",
-        };
-      }
-
-
-      await supabaseAdmin
-        .from("faturas")
-        .update({
-          pix_txid: txid,
-          pix_copia_cola: copiaCola,
-          pix_valor_centavos: centavos,
-        })
-        .eq("id", fatura.id);
+    if (!transacao || !transacao.copia_cola) {
+      return {
+        valor,
+        copia_cola: "",
+        txid: "",
+        status: fatura.status as string,
+        disponivel: false,
+        mensagem: "Pagamento indisponível no momento. Tente novamente em alguns minutos.",
+      };
     }
 
+    // Mantém os campos legados da fatura em sincronia com a transação atual.
+    await supabaseAdmin
+      .from("faturas")
+      .update({
+        pix_txid: transacao.transacao_gateway_id,
+        pix_copia_cola: transacao.copia_cola,
+        pix_valor_centavos: centavos,
+      })
+      .eq("id", fatura.id);
 
-
-    const { data: existente } = await supabaseAdmin
+    const { data: pendente } = await supabaseAdmin
       .from("pagamentos")
       .select("id, valor")
       .eq("fatura_id", fatura.id)
       .eq("status", "pendente")
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
-    const pendente = existente?.[0];
     if (!pendente) {
       await supabaseAdmin.from("pagamentos").insert({
         fatura_id: fatura.id,
@@ -247,27 +222,30 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         valor,
         metodo: "pix",
         status: "pendente",
-        gateway,
-        gateway_payment_id: txid,
+        gateway: transacao.gateway_slug,
+        gateway_payment_id: transacao.transacao_gateway_id,
       });
-    } else if (Math.round(Number(pendente.valor) * 100) !== centavos) {
-      // Valor da fatura mudou: o pagamento pendente passa a refletir o novo valor.
+    } else {
       await supabaseAdmin
         .from("pagamentos")
-        .update({ valor, gateway, gateway_payment_id: txid })
+        .update({
+          valor,
+          gateway: transacao.gateway_slug,
+          gateway_payment_id: transacao.transacao_gateway_id,
+        })
         .eq("id", pendente.id);
     }
 
-
     return {
       valor,
-      copia_cola: copiaCola,
-      txid,
-      status: fatura.status as string,
+      copia_cola: transacao.copia_cola,
+      txid: transacao.transacao_gateway_id ?? "",
+      status: transacao.status === "pago" ? "paga" : (fatura.status as string),
       disponivel: true,
+      gateway: transacao.gateway_slug,
+      expira_em: transacao.expira_em,
     };
   });
-
 
 /**
  * Consulta leve usada pelo polling da tela — devolve o status atual da fatura
@@ -277,45 +255,35 @@ export const consultarStatusFatura = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => pagamentoSchema.parse(data))
   .handler(async ({ data }): Promise<{ status: string }> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { statusNaGateway, confirmarPagamento } = await import("@/lib/payment-router.server");
+
     const { data: fatura } = await supabaseAdmin
       .from("faturas")
-      .select("id, status, pix_txid")
+      .select("id, status")
       .eq("id", data.fatura_id)
       .maybeSingle();
 
     if (!fatura) return { status: "em_aberto" };
     if (fatura.status === "paga") return { status: "paga" };
 
-    // Consulta o gateway a cada polling — baixa automática mesmo sem webhook.
-    if (fatura.pix_txid) {
-      const { data: pagamento } = await supabaseAdmin
-        .from("pagamentos")
-        .select("gateway")
-        .eq("gateway_payment_id", fatura.pix_txid)
-        .maybeSingle();
+    const { data: transacao } = await supabaseAdmin
+      .from("transacoes_pix")
+      .select(
+        "id, gateway_slug, transacao_gateway_id, valor_centavos, copia_cola, qrcode, status, expira_em",
+      )
+      .eq("fatura_id", fatura.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      let pago = false;
-      if (pagamento?.gateway === "afiliaxpay") {
-        const { consultarStatus, statusPago } = await import("@/lib/afiliaxpay.server");
-        pago = statusPago(await consultarStatus(fatura.pix_txid));
-      } else {
-        const { consultarTransacao, pagoNoGateway } = await import("@/lib/cashinpay.server");
-        pago = pagoNoGateway(await consultarTransacao(fatura.pix_txid));
-      }
-
+    if (transacao) {
+      if (transacao.status === "pago") return { status: "paga" };
+      const pago = await statusNaGateway(transacao);
       if (pago) {
-        await supabaseAdmin
-          .from("faturas")
-          .update({ status: "paga", data_pagamento: new Date().toISOString() })
-          .eq("id", fatura.id);
-        await supabaseAdmin
-          .from("pagamentos")
-          .update({ status: "confirmado", pago_em: new Date().toISOString() })
-          .eq("gateway_payment_id", fatura.pix_txid);
+        await confirmarPagamento(transacao.id);
         return { status: "paga" };
       }
     }
-
 
     return { status: (fatura.status as string) ?? "em_aberto" };
   });
