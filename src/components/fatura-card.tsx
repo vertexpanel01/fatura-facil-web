@@ -94,13 +94,14 @@ export function CardFatura({
   const pagavel = STATUS_PAGAVEIS.includes(status);
   const emProcessamento = status === "em_processamento";
   const mensagem = MENSAGEM_STATUS[status] ?? "Não foi possível determinar a situação desta fatura.";
+  const [requestKeyInicial] = useState(() => crypto.randomUUID());
 
   // Gera o PIX automaticamente ao abrir a fatura (menos um passo para o cliente).
   // Uma única chamada ao backend por carregamento da página — o backend decide
   // se cria uma cobrança nova (padrão) ou reaproveita uma ainda válida.
   const pixInicial = useQuery({
     queryKey: ["pix", fatura.id],
-    queryFn: () => gerarPix({ data: { fatura_id: fatura.id } }),
+    queryFn: () => gerarPix({ data: { fatura_id: fatura.id, request_key: requestKeyInicial } }),
     enabled: pagavel,
     gcTime: 0,
     refetchOnMount: false,
@@ -111,7 +112,8 @@ export function CardFatura({
 
   // "Gerar novo PIX": sempre cria uma cobrança nova na gateway.
   const novoPix = useMutation({
-    mutationFn: () => gerarPix({ data: { fatura_id: fatura.id, forcar: true } }),
+    mutationFn: () =>
+      gerarPix({ data: { fatura_id: fatura.id, forcar: true, request_key: crypto.randomUUID() } }),
     onSuccess: (r) => {
       setPixManual(r);
       if (r.disponivel) toast.success("Novo código PIX gerado.");

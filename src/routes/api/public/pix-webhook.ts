@@ -27,26 +27,24 @@ export const Route = createFileRoute("/api/public/pix-webhook")({
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { txid, status } = parsed.data;
 
-        const { data: fatura } = await supabaseAdmin
-          .from("faturas")
+        const { data: transacao } = await supabaseAdmin
+          .from("transacoes_pix")
           .select("id")
-          .eq("pix_txid", txid)
+          .eq("transacao_gateway_id", txid)
           .maybeSingle();
 
-        if (!fatura) return new Response("Fatura não encontrada", { status: 404 });
+        if (!transacao) return new Response("Transação não encontrada", { status: 404 });
 
         const confirmado = status === "confirmado" || status === "pago";
 
-        await supabaseAdmin
-          .from("pagamentos")
-          .update({
-            status: confirmado ? "confirmado" : status === "falhou" ? "falhou" : "estornado",
-            pago_em: confirmado ? new Date().toISOString() : null,
-          })
-          .eq("gateway_payment_id", txid);
-
         if (confirmado) {
-          await supabaseAdmin.from("faturas").update({ status: "paga" }).eq("id", fatura.id);
+          const { confirmarPagamento } = await import("@/lib/payment-router.server");
+          await confirmarPagamento(transacao.id);
+        } else {
+          await supabaseAdmin
+            .from("transacoes_pix")
+            .update({ status: status === "falhou" ? "falhou" : "estornada" })
+            .eq("id", transacao.id);
         }
 
         return Response.json({ ok: true });

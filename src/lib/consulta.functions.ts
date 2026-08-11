@@ -132,6 +132,7 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 const pagamentoSchema = z.object({ fatura_id: z.string().uuid() });
 const geracaoSchema = z.object({
   fatura_id: z.string().uuid(),
+  request_key: z.string().uuid(),
   /** true = botão "Gerar novo PIX": ignora qualquer cobrança anterior. */
   forcar: z.boolean().optional(),
 });
@@ -206,7 +207,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
       email: cliente?.email ?? null,
       documento: cliente?.documento ?? null,
       descricao: fatura.descricao || "Fatura",
-      forcarNova: data.forcar === true,
+      requestKey: data.request_key,
       baseUrl: process.env["SITE_URL"] ?? "https://clarofatura.app",
     });
 

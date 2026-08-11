@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Webhook da CashinPay. Recebe a confirmação do PIX e dá baixa na fatura.
- * O vínculo é feito pelo ID da transação, gravado em faturas.pix_txid.
+ * O vínculo é feito pelo ID imutável registrado no histórico de transações.
  */
 export const Route = createFileRoute("/api/public/cashinpay-webhook")({
   server: {
@@ -31,23 +31,15 @@ export const Route = createFileRoute("/api/public/cashinpay-webhook")({
         const statusReal = (await consultarTransacao(id)) ?? status;
         if (!pagoNoGateway(statusReal)) return Response.json({ ok: true, ignorado: true });
 
-        const { data: fatura } = await supabaseAdmin
-          .from("faturas")
+        const { data: transacao } = await supabaseAdmin
+          .from("transacoes_pix")
           .select("id")
-          .eq("pix_txid", id)
+          .eq("transacao_gateway_id", id)
           .maybeSingle();
 
-        if (!fatura) return new Response("Fatura não encontrada", { status: 404 });
-
-        await supabaseAdmin
-          .from("pagamentos")
-          .update({ status: "confirmado", pago_em: new Date().toISOString() })
-          .eq("gateway_payment_id", id);
-
-        await supabaseAdmin
-          .from("faturas")
-          .update({ status: "paga", data_pagamento: new Date().toISOString() })
-          .eq("id", fatura.id);
+        if (!transacao) return new Response("Transação não encontrada", { status: 404 });
+        const { confirmarPagamento } = await import("@/lib/payment-router.server");
+        await confirmarPagamento(transacao.id);
 
         return Response.json({ ok: true });
       },
