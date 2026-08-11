@@ -23,10 +23,8 @@ import { Route as AuthenticatedAdminGatewaysRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authenticated/admin.logs'
 import { Route as AuthenticatedAdminPagamentosRouteImport } from './routes/_authenticated/admin.pagamentos'
 import { Route as AuthenticatedAdminTransacoesRouteImport } from './routes/_authenticated/admin.transacoes'
-import { Route as ApiPublicCashinpayWebhookRouteImport } from './routes/api/public/cashinpay-webhook'
 import { Route as ApiPublicCobrancaRouteImport } from './routes/api/public/cobranca'
 import { Route as ApiPublicFaturasRouteImport } from './routes/api/public/faturas'
-import { Route as ApiPublicPixWebhookRouteImport } from './routes/api/public/pix-webhook'
 import { Route as ApiPublicWebhooksSlugRouteImport } from './routes/api/public/webhooks/$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -103,12 +101,6 @@ const AuthenticatedAdminTransacoesRoute =
     path: '/transacoes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const ApiPublicCashinpayWebhookRoute =
-  ApiPublicCashinpayWebhookRouteImport.update({
-    id: '/api/public/cashinpay-webhook',
-    path: '/api/public/cashinpay-webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicCobrancaRoute = ApiPublicCobrancaRouteImport.update({
   id: '/api/public/cobranca',
   path: '/api/public/cobranca',
@@ -117,11 +109,6 @@ const ApiPublicCobrancaRoute = ApiPublicCobrancaRouteImport.update({
 const ApiPublicFaturasRoute = ApiPublicFaturasRouteImport.update({
   id: '/api/public/faturas',
   path: '/api/public/faturas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicPixWebhookRoute = ApiPublicPixWebhookRouteImport.update({
-  id: '/api/public/pix-webhook',
-  path: '/api/public/pix-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWebhooksSlugRoute = ApiPublicWebhooksSlugRouteImport.update({
@@ -143,10 +130,8 @@ export interface FileRoutesByFullPath {
   '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
   '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
-  '/api/public/cashinpay-webhook': typeof ApiPublicCashinpayWebhookRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
-  '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
 }
@@ -162,10 +147,8 @@ export interface FileRoutesByTo {
   '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
   '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
-  '/api/public/cashinpay-webhook': typeof ApiPublicCashinpayWebhookRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
-  '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
 }
@@ -184,10 +167,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/_authenticated/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
   '/_authenticated/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
-  '/api/public/cashinpay-webhook': typeof ApiPublicCashinpayWebhookRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
-  '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
 }
@@ -206,10 +187,8 @@ export interface FileRouteTypes {
     | '/admin/logs'
     | '/admin/pagamentos'
     | '/admin/transacoes'
-    | '/api/public/cashinpay-webhook'
     | '/api/public/cobranca'
     | '/api/public/faturas'
-    | '/api/public/pix-webhook'
     | '/admin/'
     | '/api/public/webhooks/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -225,10 +204,8 @@ export interface FileRouteTypes {
     | '/admin/logs'
     | '/admin/pagamentos'
     | '/admin/transacoes'
-    | '/api/public/cashinpay-webhook'
     | '/api/public/cobranca'
     | '/api/public/faturas'
-    | '/api/public/pix-webhook'
     | '/admin'
     | '/api/public/webhooks/$slug'
   id:
@@ -246,10 +223,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/logs'
     | '/_authenticated/admin/pagamentos'
     | '/_authenticated/admin/transacoes'
-    | '/api/public/cashinpay-webhook'
     | '/api/public/cobranca'
     | '/api/public/faturas'
-    | '/api/public/pix-webhook'
     | '/_authenticated/admin/'
     | '/api/public/webhooks/$slug'
   fileRoutesById: FileRoutesById
@@ -261,10 +236,8 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   FaturaTelefoneRoute: typeof FaturaTelefoneRoute
-  ApiPublicCashinpayWebhookRoute: typeof ApiPublicCashinpayWebhookRoute
   ApiPublicCobrancaRoute: typeof ApiPublicCobrancaRoute
   ApiPublicFaturasRoute: typeof ApiPublicFaturasRoute
-  ApiPublicPixWebhookRoute: typeof ApiPublicPixWebhookRoute
   ApiPublicWebhooksSlugRoute: typeof ApiPublicWebhooksSlugRoute
 }
 
@@ -368,13 +341,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTransacoesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/api/public/cashinpay-webhook': {
-      id: '/api/public/cashinpay-webhook'
-      path: '/api/public/cashinpay-webhook'
-      fullPath: '/api/public/cashinpay-webhook'
-      preLoaderRoute: typeof ApiPublicCashinpayWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/cobranca': {
       id: '/api/public/cobranca'
       path: '/api/public/cobranca'
@@ -387,13 +353,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/faturas'
       fullPath: '/api/public/faturas'
       preLoaderRoute: typeof ApiPublicFaturasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/pix-webhook': {
-      id: '/api/public/pix-webhook'
-      path: '/api/public/pix-webhook'
-      fullPath: '/api/public/pix-webhook'
-      preLoaderRoute: typeof ApiPublicPixWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/webhooks/$slug': {
@@ -447,10 +406,8 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   FaturaTelefoneRoute: FaturaTelefoneRoute,
-  ApiPublicCashinpayWebhookRoute: ApiPublicCashinpayWebhookRoute,
   ApiPublicCobrancaRoute: ApiPublicCobrancaRoute,
   ApiPublicFaturasRoute: ApiPublicFaturasRoute,
-  ApiPublicPixWebhookRoute: ApiPublicPixWebhookRoute,
   ApiPublicWebhooksSlugRoute: ApiPublicWebhooksSlugRoute,
 }
 export const routeTree = rootRouteImport

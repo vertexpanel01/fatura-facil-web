@@ -184,11 +184,6 @@ export type PedidoCobranca = {
   requestKey: string;
 };
 
-/** Chave única POR TENTATIVA — nunca reaproveita uma transação anterior. */
-function novaChaveIdempotencia(faturaId: string): string {
-  return `fatura:${faturaId}:${Date.now().toString(36)}:${crypto.randomUUID()}`;
-}
-
 const COLUNAS_TRANSACAO =
   "id, gateway_slug, transacao_gateway_id, valor_centavos, copia_cola, qrcode, status, expira_em";
 
