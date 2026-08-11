@@ -1,0 +1,1 @@
+UPDATE public.faturas SET pix_copia_cola = NULL, pix_txid = NULL WHERE status <> 'paga';
