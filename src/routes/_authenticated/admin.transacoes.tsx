@@ -20,6 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { formatarMoeda } from "@/lib/format";
 import { listarTransacoes } from "@/lib/transacoes.functions";
 
@@ -56,11 +58,12 @@ function dataHora(valor: string | null): string {
 
 function PaginaTransacoes() {
   const [status, setStatus] = useState("todos");
+  const [historico, setHistorico] = useState(false);
   const buscar = useServerFn(listarTransacoes);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["transacoes", status],
-    queryFn: () => buscar({ data: { status } }),
+    queryKey: ["transacoes", status, historico],
+    queryFn: () => buscar({ data: { status, agrupar: !historico } }),
     refetchInterval: 15000,
   });
 
@@ -72,8 +75,13 @@ function PaginaTransacoes() {
         <div>
           <h1 className="text-2xl font-bold">Transações PIX</h1>
           <p className="text-sm text-muted-foreground">
-            Cada cobrança gerada, a gateway que atendeu e a situação do pagamento.
+            Uma cobrança vigente por cliente até o pagamento ser confirmado.
           </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Switch id="historico" checked={historico} onCheckedChange={setHistorico} />
+          <Label htmlFor="historico" className="text-sm">Mostrar histórico completo</Label>
         </div>
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="w-52">
@@ -87,6 +95,7 @@ function PaginaTransacoes() {
             <SelectItem value="falhou">Recusados</SelectItem>
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       <Card>
@@ -98,6 +107,7 @@ function PaginaTransacoes() {
                 <TableHead>Gateway</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Tentativas</TableHead>
                 <TableHead>Criada em</TableHead>
                 <TableHead>Expira em</TableHead>
                 <TableHead>Paga em</TableHead>
@@ -107,13 +117,13 @@ function PaginaTransacoes() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground">
                     Carregando…
                   </TableCell>
                 </TableRow>
               ) : lista.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground">
                     Nenhuma transação encontrada.
                   </TableCell>
                 </TableRow>
@@ -128,6 +138,7 @@ function PaginaTransacoes() {
                         {t.status}
                       </Badge>
                     </TableCell>
+                    <TableCell>{t.tentativas}</TableCell>
                     <TableCell className="whitespace-nowrap">{dataHora(t.created_at)}</TableCell>
                     <TableCell className="whitespace-nowrap">{dataHora(t.expira_em)}</TableCell>
                     <TableCell className="whitespace-nowrap">{dataHora(t.pago_em)}</TableCell>
