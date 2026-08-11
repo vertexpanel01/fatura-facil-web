@@ -145,6 +145,36 @@ export type Database = {
           },
         ]
       }
+      gateways_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          prioridade: number
+          rotulo: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          prioridade?: number
+          rotulo: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          prioridade?: number
+          rotulo?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pagamentos: {
         Row: {
           cliente_id: string | null
