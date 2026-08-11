@@ -108,37 +108,47 @@ export async function criarCobrancaPix(entrada: {
   const caminho = process.env["AFILIAXPAY_ENDPOINT"] ?? "/api/wallet/deposit/payment";
   const url = `${base()}${caminho.startsWith("/") ? caminho : `/${caminho}`}`;
 
-  try {
-    const resposta = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(corpo),
-    });
+  // A API limita a frequência de geração de PIX (429): tenta novamente.
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    try {
+      const resposta = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(corpo),
+      });
 
-    const bruto = await resposta.text().catch(() => "");
+      const bruto = await resposta.text().catch(() => "");
 
-    if (!resposta.ok) {
-      console.error("[afiliaxpay] falha", resposta.status, bruto.slice(0, 300));
-      return null;
+      if ((resposta.status === 429 || resposta.status >= 500) && tentativa < 2) {
+        await new Promise((r) => setTimeout(r, 2500 * (tentativa + 1)));
+        continue;
+      }
+
+      if (!resposta.ok) {
+        console.error("[afiliaxpay] falha", resposta.status, bruto.slice(0, 300));
+        return null;
+      }
+
+      const dados = JSON.parse(bruto) as Record<string, unknown>;
+      const copiaCola = extrairCopiaCola(dados);
+      if (!copiaCola) {
+        console.error("[afiliaxpay] resposta sem copia-e-cola", bruto.slice(0, 300));
+        return null;
+      }
+
+      return {
+        id: extrairId(dados) || String(entrada.referencia ?? ""),
+        copia_cola: copiaCola,
+        status: "pendente",
+      };
+    } catch (erro) {
+      console.error("[afiliaxpay] erro de rede", erro);
     }
-
-    const dados = JSON.parse(bruto) as Record<string, unknown>;
-    const copiaCola = extrairCopiaCola(dados);
-    if (!copiaCola) {
-      console.error("[afiliaxpay] resposta sem copia-e-cola", bruto.slice(0, 300));
-      return null;
-    }
-
-    return {
-      id: extrairId(dados) || String(entrada.referencia ?? ""),
-      copia_cola: copiaCola,
-      status: "pendente",
-    };
-  } catch (erro) {
-    console.error("[afiliaxpay] erro de rede", erro);
-    return null;
   }
+
+  return null;
 }
+
 
 /**
  * Consulta o status de um PIX-IN.
