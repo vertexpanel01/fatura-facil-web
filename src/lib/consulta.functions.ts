@@ -175,8 +175,18 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
     }
 
     // Valor exato com desconto, convertido uma única vez para centavos.
-    const bruto = Number(fatura.valor_desconto) || Number(fatura.valor_original);
-    const centavos = Math.max(1, Math.round(bruto * 100));
+    const bruto = Number(fatura.valor_desconto);
+    const centavos = Math.round(bruto * 100);
+    if (!Number.isFinite(centavos) || centavos <= 0) {
+      return {
+        valor: 0,
+        copia_cola: "",
+        txid: "",
+        status: fatura.status as string,
+        disponivel: false,
+        mensagem: "Esta fatura não possui um valor com desconto válido para pagamento.",
+      };
+    }
     const valor = centavos / 100;
 
     // Reaproveitamento só quando o painel permite E o cliente não pediu novo PIX.

@@ -118,7 +118,13 @@ export const Route = createFileRoute("/api/public/cobranca")({
         }
 
         // Valor cobrado é SEMPRE o valor com desconto.
-        const valor = Number(fatura.valor_desconto) || Number(fatura.valor_original) || 0;
+        const valor = Number(fatura.valor_desconto);
+        if (!Number.isFinite(valor) || valor <= 0) {
+          return Response.json(
+            { erro: "A fatura não possui um valor com desconto válido." },
+            { status: 422, headers: cors },
+          );
+        }
 
         const { data: clienteCompleto } = await supabaseAdmin
           .from("clientes")
@@ -126,7 +132,7 @@ export const Route = createFileRoute("/api/public/cobranca")({
           .eq("id", fatura.cliente_id)
           .maybeSingle();
 
-        const centavos = Math.max(1, Math.round(valor * 100));
+        const centavos = Math.round(valor * 100);
         const cobranca = await criarCobrancaPix({
           faturaId: fatura.id,
           clienteId: fatura.cliente_id,
