@@ -288,9 +288,22 @@ export const consultarStatusFatura = createServerFn({ method: "POST" })
 
     // Consulta o gateway a cada polling — baixa automática mesmo sem webhook.
     if (fatura.pix_txid) {
-      const { consultarTransacao, pagoNoGateway } = await import("@/lib/cashinpay.server");
-      const statusGateway = await consultarTransacao(fatura.pix_txid);
-      if (pagoNoGateway(statusGateway)) {
+      const { data: pagamento } = await supabaseAdmin
+        .from("pagamentos")
+        .select("gateway")
+        .eq("gateway_payment_id", fatura.pix_txid)
+        .maybeSingle();
+
+      let pago = false;
+      if (pagamento?.gateway === "afiliaxpay") {
+        const { consultarStatus, statusPago } = await import("@/lib/afiliaxpay.server");
+        pago = statusPago(await consultarStatus(fatura.pix_txid));
+      } else {
+        const { consultarTransacao, pagoNoGateway } = await import("@/lib/cashinpay.server");
+        pago = pagoNoGateway(await consultarTransacao(fatura.pix_txid));
+      }
+
+      if (pago) {
         await supabaseAdmin
           .from("faturas")
           .update({ status: "paga", data_pagamento: new Date().toISOString() })
@@ -302,6 +315,7 @@ export const consultarStatusFatura = createServerFn({ method: "POST" })
         return { status: "paga" };
       }
     }
+
 
     return { status: (fatura.status as string) ?? "em_aberto" };
   });
