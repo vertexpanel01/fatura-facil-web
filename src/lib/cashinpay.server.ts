@@ -81,6 +81,39 @@ function primeiroCampo(obj: unknown, campos: string[]): string | null {
   return null;
 }
 
+async function recuperarCobranca(id: string): Promise<CobrancaPix | null> {
+  try {
+    const resposta = await fetch(`${BASE}/transactions/${encodeURIComponent(id)}`, {
+      headers: headers(),
+    });
+    const json = (await resposta.json().catch(() => null)) as
+      | { success?: boolean; data?: unknown }
+      | null;
+    if (!resposta.ok || !json?.success) return null;
+
+    const dados = (json.data ?? json) as Record<string, unknown>;
+    const copiaCola = primeiroCampo(dados, [
+      "copy_paste",
+      "qrcode",
+      "qrCode",
+      "pixCode",
+      "copyPaste",
+      "emv",
+      "payload",
+      "brcode",
+    ]);
+    if (!copiaCola) return null;
+
+    return {
+      id: primeiroCampo(dados, ["id", "transactionId", "transaction_id"]) ?? id,
+      copia_cola: copiaCola,
+      status: String((dados as { status?: unknown }).status ?? "pending"),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Cria uma cobrança PIX dinâmica. Devolve null quando o gateway está
  * indisponível — nesse caso o sistema cai no PIX estático de contingência.
@@ -173,6 +206,10 @@ export async function criarCobrancaPix(entrada: {
       codigoErro.toLowerCase().includes("transacao ja existe") ||
       bruto.toLowerCase().includes("duplicate_transaction_id");
     json = null;
+    if (transacaoDuplicada) {
+      const existente = await recuperarCobranca(idUsado);
+      if (existente) return existente;
+    }
     // Uma tentativa anterior pode ter sido criada mesmo quando o gateway
     // respondeu 502. Nesse caso, tenta novamente com o sufixo seguinte.
     // Outros 4xx são erros de validação e não devem ser repetidos.
@@ -191,6 +228,7 @@ export async function criarCobrancaPix(entrada: {
 
   const dados = (json.data ?? json) as Record<string, unknown>;
   const copiaCola = primeiroCampo(dados, [
+    "copy_paste",
     "qrcode",
     "qrCode",
     "pixCode",
