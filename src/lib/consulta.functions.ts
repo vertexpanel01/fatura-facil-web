@@ -242,11 +242,33 @@ export const consultarStatusFatura = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: fatura } = await supabaseAdmin
       .from("faturas")
-      .select("status")
+      .select("id, status, pix_txid")
       .eq("id", data.fatura_id)
       .maybeSingle();
-    return { status: (fatura?.status as string) ?? "em_aberto" };
+
+    if (!fatura) return { status: "em_aberto" };
+    if (fatura.status === "paga") return { status: "paga" };
+
+    // Consulta o gateway a cada polling — baixa automática mesmo sem webhook.
+    if (fatura.pix_txid) {
+      const { consultarTransacao, pagoNoGateway } = await import("@/lib/cashinpay.server");
+      const statusGateway = await consultarTransacao(fatura.pix_txid);
+      if (pagoNoGateway(statusGateway)) {
+        await supabaseAdmin
+          .from("faturas")
+          .update({ status: "paga", data_pagamento: new Date().toISOString() })
+          .eq("id", fatura.id);
+        await supabaseAdmin
+          .from("pagamentos")
+          .update({ status: "confirmado", pago_em: new Date().toISOString() })
+          .eq("gateway_payment_id", fatura.pix_txid);
+        return { status: "paga" };
+      }
+    }
+
+    return { status: (fatura.status as string) ?? "em_aberto" };
   });
+
 
 /**
  * Baixa automática do pagamento PIX.
