@@ -191,7 +191,7 @@ export async function criarCobrancaPix(entrada: {
   if (!copiaCola) return null;
 
   return {
-    id: id ?? transactionId,
+    id: id ?? idUsado,
     copia_cola: copiaCola,
     status: String((dados as { status?: unknown }).status ?? "pending"),
   };
