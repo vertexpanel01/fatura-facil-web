@@ -177,11 +177,15 @@ function PaginaFaturas() {
 
   const gerarCobranca = useMutation({
     mutationFn: async (faturaId: string) => {
+      const { data: sessao } = await supabase.auth.getSession();
+      const token = sessao.session?.access_token;
+      if (!token) throw new Error("Sessão expirada. Entre novamente.");
       const resposta = await fetch("/api/public/cobranca", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ fatura_id: faturaId }),
       });
+
       const json = (await resposta.json()) as { erro?: string };
       if (!resposta.ok) throw new Error(json.erro ?? "Não foi possível gerar a cobrança.");
     },
