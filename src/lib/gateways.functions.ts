@@ -93,7 +93,7 @@ export const salvarRoteamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => roteamentoSchema.parse(data))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
-    await exigirAdmin(context);
+    await exigirAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("roteamento_config")
@@ -127,37 +127,22 @@ const gatewaySchema = z.object({
 });
 
 /** Somente administradores podem alterar gateways. */
-async function exigirAdmin(context: { supabase: SupabaseCtx; userId: string }): Promise<void> {
-  const { data } = await context.supabase
+async function exigirAdmin(userId: string): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
     .from("user_roles")
     .select("role")
-    .eq("user_id", context.userId)
+    .eq("user_id", userId)
     .eq("role", "admin")
     .maybeSingle();
   if (!data) throw new Error("Acesso restrito a administradores.");
 }
 
-type SupabaseCtx = {
-  from: (tabela: string) => {
-    select: (colunas: string) => {
-      eq: (
-        coluna: string,
-        valor: unknown,
-      ) => {
-        eq: (
-          coluna: string,
-          valor: unknown,
-        ) => { maybeSingle: () => Promise<{ data: unknown | null }> };
-      };
-    };
-  };
-};
-
 export const salvarGateway = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => gatewaySchema.parse(data))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
-    await exigirAdmin(context as unknown as { supabase: SupabaseCtx; userId: string });
+    await exigirAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const registro = {
@@ -212,7 +197,7 @@ export const removerGateway = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
-    await exigirAdmin(context as unknown as { supabase: SupabaseCtx; userId: string });
+    await exigirAdmin(context.userId);
     const { error } = await context.supabase.from("gateways_config").delete().eq("id", data.id);
     if (error) throw new Error("Não foi possível remover o gateway.");
     return { ok: true };
