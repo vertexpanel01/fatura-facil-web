@@ -136,6 +136,8 @@ export type PixGerado = {
   copia_cola: string;
   txid: string;
   status: string;
+  disponivel: boolean;
+  mensagem?: string;
 };
 
 /**
@@ -159,7 +161,13 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
 
     if (error || !fatura) throw new Error("Fatura não encontrada.");
     if (fatura.status === "paga") {
-      return { valor: 0, copia_cola: "", txid: fatura.pix_txid ?? "", status: "paga" };
+      return {
+        valor: 0,
+        copia_cola: "",
+        txid: fatura.pix_txid ?? "",
+        status: "paga",
+        disponivel: false,
+      };
     }
 
     // Valor exato com desconto, convertido uma única vez para centavos.
@@ -204,9 +212,14 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         // configurada. Nunca gera código com chave fictícia.
         const chaveReal = process.env["PIX_CHAVE"];
         if (!chaveReal) {
-          throw new Error(
-            "Pagamento indisponível no momento. Tente novamente em alguns minutos.",
-          );
+          return {
+            valor,
+            copia_cola: "",
+            txid: "",
+            status: fatura.status as string,
+            disponivel: false,
+            mensagem: "Pagamento indisponível no momento. Tente novamente em alguns minutos.",
+          };
         }
         gateway = "pix-estatico";
         txid = novoTxid();
@@ -258,7 +271,13 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
     }
 
 
-    return { valor, copia_cola: copiaCola, txid, status: fatura.status as string };
+    return {
+      valor,
+      copia_cola: copiaCola,
+      txid,
+      status: fatura.status as string,
+      disponivel: true,
+    };
   });
 
 

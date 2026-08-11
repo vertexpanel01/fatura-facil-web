@@ -163,9 +163,18 @@ export async function criarCobrancaPix(entrada: {
       resposta.status,
       bruto.slice(0, 300),
     );
+    const codigoErro = json?.error?.message ?? "";
+    const transacaoDuplicada =
+      resposta.status === 409 ||
+      codigoErro.toLowerCase().includes("transacao ja existe") ||
+      bruto.toLowerCase().includes("duplicate_transaction_id");
     json = null;
-    // Erros de validação (4xx) não adianta repetir.
-    if (resposta.status >= 400 && resposta.status < 500) return null;
+    // Uma tentativa anterior pode ter sido criada mesmo quando o gateway
+    // respondeu 502. Nesse caso, tenta novamente com o sufixo seguinte.
+    // Outros 4xx são erros de validação e não devem ser repetidos.
+    if (resposta.status >= 400 && resposta.status < 500 && !transacaoDuplicada) {
+      return null;
+    }
     await new Promise((r) => setTimeout(r, 400 * (tentativa + 1)));
   }
 
