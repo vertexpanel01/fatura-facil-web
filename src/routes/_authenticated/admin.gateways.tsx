@@ -133,8 +133,11 @@ function PaginaGateways() {
   };
 
   const definirRota = useMutation({
-    mutationFn: (vars: { estrategia: "prioridade" | "rodizio" | "fixa"; gateway_fixa?: string | null }) =>
-      salvarRota({ data: vars }),
+    mutationFn: (vars: {
+      estrategia: "prioridade" | "rodizio" | "fixa";
+      gateway_fixa?: string | null;
+      novo_pix_por_acesso?: boolean;
+    }) => salvarRota({ data: vars }),
     onSuccess: () => {
       recarregar();
       toast.success("Estratégia atualizada.");
@@ -270,6 +273,27 @@ function PaginaGateways() {
               </SelectContent>
             </Select>
           ) : null}
+
+          <div className="flex w-full items-start gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+            <Switch
+              id="novo-pix"
+              checked={roteamento.data?.novo_pix_por_acesso ?? true}
+              onCheckedChange={(v) =>
+                definirRota.mutate({
+                  estrategia: estrategia as "prioridade" | "rodizio" | "fixa",
+                  gateway_fixa: roteamento.data?.gateway_fixa ?? null,
+                  novo_pix_por_acesso: v,
+                })
+              }
+            />
+            <Label htmlFor="novo-pix" className="text-sm font-normal leading-snug">
+              <span className="font-semibold">Gerar novo PIX a cada acesso</span>
+              <span className="block text-muted-foreground">
+                Ligado: cada visita à página de pagamento cria uma cobrança nova na gateway.
+                Desligado: reaproveita a cobrança pendente enquanto ela estiver válida.
+              </span>
+            </Label>
+          </div>
         </CardContent>
       </Card>
 
