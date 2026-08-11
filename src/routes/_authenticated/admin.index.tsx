@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { Trash2, UserCheck, Users } from "lucide-react";
+import { FileText, Trash2, UserCheck, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,7 @@ function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            Clientes que acessaram a página e total de clientes no banco de dados.
+            Clientes que acessaram, clientes cadastrados e faturas visualizadas.
           </p>
         </div>
         <Button
@@ -88,7 +88,7 @@ function Dashboard() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Cartao
           titulo="Clientes que acessaram a página"
           valor={(metricas?.clientes_total ?? 0).toLocaleString("pt-BR")}
@@ -102,6 +102,13 @@ function Dashboard() {
           descricao="Total de clientes cadastrados"
           icone={Users}
           carregando={isLoading}
+        />
+        <Cartao
+          titulo="Total de faturas visualizadas"
+          valor={(metricas?.faturas_visualizadas_total ?? 0).toLocaleString("pt-BR")}
+          descricao="Faturas consultadas com sucesso"
+          icone={FileText}
+          carregando={carregandoMetricas}
         />
       </div>
     </div>
