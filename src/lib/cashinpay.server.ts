@@ -99,10 +99,13 @@ export async function criarCobrancaPix(entrada: {
 
 
   const reais = Math.round(centavos) / 100;
-  const transactionId =
-    entrada.referencia && entrada.referencia.length > 0
-      ? entrada.referencia
-      : `fatura_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // Cada nova solicitação precisa de uma referência inédita. Reutilizar apenas
+  // o ID da fatura faz o gateway responder duplicate_transaction_id quando a
+  // primeira resposta se perde (por exemplo, após um 502).
+  const referenciaBase = entrada.referencia?.trim() || "fatura";
+  const transactionId = `${referenciaBase}_${Date.now().toString(36)}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
 
   const corpo: Record<string, unknown> = {
     amount: reais,
