@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
-import type { FaturaPublica } from "@/lib/consulta.functions";
+import type { FaturaPublica, PixGerado } from "@/lib/consulta.functions";
 import {
   formatarData,
   formatarMoeda,
@@ -148,7 +148,6 @@ export function CardFatura({
 
   // Contagem regressiva de validade do PIX.
   const expiraEm = pix.data?.expira_em ?? null;
-  const expirou = restanteZero(expiraEm);
   const [restante, setRestante] = useState<number | null>(null);
   useEffect(() => {
     if (!expiraEm) {
@@ -300,7 +299,7 @@ export function CardFatura({
               {tempo ? (
                 <p className="mt-4 text-xs font-semibold text-foreground">
                   {restante === 0
-                    ? "Este código PIX expirou. Atualize a página para gerar um novo."
+                    ? "Este código PIX expirou. Toque em \u201cGerar novo PIX\u201d."
                     : `Este código PIX expira em ${tempo}`}
                 </p>
               ) : null}
