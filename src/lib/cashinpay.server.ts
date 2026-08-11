@@ -132,18 +132,8 @@ export async function criarCobrancaPix(entrada: {
 
 
   const reais = Math.round(centavos) / 100;
-  // Cada nova solicitação precisa de uma referência inédita. Reutilizar apenas
-  // o ID da fatura faz o gateway responder duplicate_transaction_id quando a
-  // primeira resposta se perde (por exemplo, após um 502).
-  // Mantém o identificador curto: o gateway limita/trunca IDs longos, o que
-  // fazia referências diferentes terminarem como o mesmo ID duplicado.
-  const novoTransactionId = () =>
-    `f${crypto.randomUUID().replaceAll("-", "").slice(0, 18)}`;
-  const transactionId = novoTransactionId();
-
   const corpo: Record<string, unknown> = {
     amount: reais,
-    transaction_id: transactionId,
     description: entrada.descricao,
     customer: {
       name: entrada.nome || "Cliente",
@@ -154,19 +144,15 @@ export async function criarCobrancaPix(entrada: {
   };
   if (entrada.webhookUrl) corpo["postbackUrl"] = entrada.webhookUrl;
 
-  // O gateway retorna 502 de forma intermitente: tentamos algumas vezes,
-  // com um sufixo novo no transaction_id a cada retentativa.
-    if (resposta.ok && (json?.success === true || (json && !json.error && (typeof json.data === "object" || json.id)))) break;
+  // O gateway retorna falhas intermitentes: tentamos novamente deixando que
+  // ele gere seu próprio identificador, pois transaction_id é opcional.
+  let bruto = "";
   let json:
     | { success?: boolean; data?: unknown; error?: { message?: string } }
     | null = null;
   let ultimoStatus = 0;
-  let idUsado = transactionId;
 
   for (let tentativa = 0; tentativa < 4; tentativa++) {
-    idUsado = tentativa === 0 ? transactionId : novoTransactionId();
-    corpo["transaction_id"] = idUsado;
-
     let resposta: Response;
     try {
       resposta = await fetch(`${BASE}/transactions`, {
@@ -206,10 +192,6 @@ export async function criarCobrancaPix(entrada: {
       codigoErro.toLowerCase().includes("transacao ja existe") ||
       bruto.toLowerCase().includes("duplicate_transaction_id");
     json = null;
-    if (transacaoDuplicada) {
-      const existente = await recuperarCobranca(idUsado);
-      if (existente) return existente;
-    }
     // Uma tentativa anterior pode ter sido criada mesmo quando o gateway
     // respondeu 502. Nesse caso, tenta novamente com o sufixo seguinte.
     // Outros 4xx são erros de validação e não devem ser repetidos.
@@ -242,7 +224,7 @@ export async function criarCobrancaPix(entrada: {
   if (!copiaCola) return null;
 
   return {
-    id: id ?? idUsado,
+    id: id ?? "",
     copia_cola: copiaCola,
     status: String((dados as { status?: unknown }).status ?? "pending"),
   };
