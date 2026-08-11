@@ -21,6 +21,7 @@ import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminFaturasRouteImport } from './routes/_authenticated/admin.faturas'
 import { Route as AuthenticatedAdminGatewaysRouteImport } from './routes/_authenticated/admin.gateways'
 import { Route as AuthenticatedAdminPagamentosRouteImport } from './routes/_authenticated/admin.pagamentos'
+import { Route as AuthenticatedAdminTransacoesRouteImport } from './routes/_authenticated/admin.transacoes'
 import { Route as ApiPublicCashinpayWebhookRouteImport } from './routes/api/public/cashinpay-webhook'
 import { Route as ApiPublicCobrancaRouteImport } from './routes/api/public/cobranca'
 import { Route as ApiPublicFaturasRouteImport } from './routes/api/public/faturas'
@@ -90,6 +91,12 @@ const AuthenticatedAdminPagamentosRoute =
     path: '/pagamentos',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminTransacoesRoute =
+  AuthenticatedAdminTransacoesRouteImport.update({
+    id: '/transacoes',
+    path: '/transacoes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const ApiPublicCashinpayWebhookRoute =
   ApiPublicCashinpayWebhookRouteImport.update({
     id: '/api/public/cashinpay-webhook',
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/gateways': typeof AuthenticatedAdminGatewaysRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
+  '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cashinpay-webhook': typeof ApiPublicCashinpayWebhookRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
@@ -145,6 +153,7 @@ export interface FileRoutesByTo {
   '/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/admin/gateways': typeof AuthenticatedAdminGatewaysRoute
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
+  '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cashinpay-webhook': typeof ApiPublicCashinpayWebhookRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
@@ -165,6 +174,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/faturas': typeof AuthenticatedAdminFaturasRoute
   '/_authenticated/admin/gateways': typeof AuthenticatedAdminGatewaysRoute
   '/_authenticated/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
+  '/_authenticated/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cashinpay-webhook': typeof ApiPublicCashinpayWebhookRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/admin/faturas'
     | '/admin/gateways'
     | '/admin/pagamentos'
+    | '/admin/transacoes'
     | '/api/public/cashinpay-webhook'
     | '/api/public/cobranca'
     | '/api/public/faturas'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/admin/faturas'
     | '/admin/gateways'
     | '/admin/pagamentos'
+    | '/admin/transacoes'
     | '/api/public/cashinpay-webhook'
     | '/api/public/cobranca'
     | '/api/public/faturas'
@@ -221,6 +233,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/faturas'
     | '/_authenticated/admin/gateways'
     | '/_authenticated/admin/pagamentos'
+    | '/_authenticated/admin/transacoes'
     | '/api/public/cashinpay-webhook'
     | '/api/public/cobranca'
     | '/api/public/faturas'
@@ -329,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPagamentosRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/transacoes': {
+      id: '/_authenticated/admin/transacoes'
+      path: '/transacoes'
+      fullPath: '/admin/transacoes'
+      preLoaderRoute: typeof AuthenticatedAdminTransacoesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/api/public/cashinpay-webhook': {
       id: '/api/public/cashinpay-webhook'
       path: '/api/public/cashinpay-webhook'
@@ -372,6 +392,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminFaturasRoute: typeof AuthenticatedAdminFaturasRoute
   AuthenticatedAdminGatewaysRoute: typeof AuthenticatedAdminGatewaysRoute
   AuthenticatedAdminPagamentosRoute: typeof AuthenticatedAdminPagamentosRoute
+  AuthenticatedAdminTransacoesRoute: typeof AuthenticatedAdminTransacoesRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -380,6 +401,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminFaturasRoute: AuthenticatedAdminFaturasRoute,
   AuthenticatedAdminGatewaysRoute: AuthenticatedAdminGatewaysRoute,
   AuthenticatedAdminPagamentosRoute: AuthenticatedAdminPagamentosRoute,
+  AuthenticatedAdminTransacoesRoute: AuthenticatedAdminTransacoesRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
