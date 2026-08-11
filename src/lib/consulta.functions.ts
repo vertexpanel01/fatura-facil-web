@@ -147,10 +147,13 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PixGerado> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { gerarBrCode, novoTxid } = await import("@/lib/pix.server");
+    const { criarCobrancaPix } = await import("@/lib/cashinpay.server");
 
     const { data: fatura, error } = await supabaseAdmin
       .from("faturas")
-      .select("id, cliente_id, valor_original, valor_desconto, status, pix_txid, pix_copia_cola")
+      .select(
+        "id, cliente_id, descricao, valor_original, valor_desconto, status, pix_txid, pix_copia_cola",
+      )
       .eq("id", data.fatura_id)
       .maybeSingle();
 
@@ -163,16 +166,42 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
 
     let txid = fatura.pix_txid ?? "";
     let copiaCola = fatura.pix_copia_cola ?? "";
+    let gateway = "cashinpay";
 
     if (!txid || !copiaCola) {
-      txid = novoTxid();
-      copiaCola = gerarBrCode({
-        chave: process.env["PIX_CHAVE"] ?? "pagamentos@faturamovel.com.br",
+      const { data: cliente } = await supabaseAdmin
+        .from("clientes")
+        .select("nome, telefone, email, documento")
+        .eq("id", fatura.cliente_id)
+        .maybeSingle();
+
+      const base = process.env["SITE_URL"] ?? "https://clarofatura.app";
+
+      const cobranca = await criarCobrancaPix({
         valor,
-        nome: process.env["PIX_RECEBEDOR"] ?? "FATURA MOVEL",
-        cidade: process.env["PIX_CIDADE"] ?? "SAO PAULO",
-        txid,
+        nome: cliente?.nome ?? "Cliente",
+        telefone: cliente?.telefone ?? "",
+        email: cliente?.email ?? null,
+        documento: cliente?.documento ?? null,
+        descricao: fatura.descricao || "Fatura",
+        webhookUrl: `${base}/api/public/cashinpay-webhook`,
       });
+
+      if (cobranca) {
+        txid = cobranca.id;
+        copiaCola = cobranca.copia_cola;
+      } else {
+        // Contingência: PIX estático caso o gateway esteja indisponível.
+        gateway = "pix-estatico";
+        txid = novoTxid();
+        copiaCola = gerarBrCode({
+          chave: process.env["PIX_CHAVE"] ?? "pagamentos@faturamovel.com.br",
+          valor,
+          nome: process.env["PIX_RECEBEDOR"] ?? "FATURA MOVEL",
+          cidade: process.env["PIX_CIDADE"] ?? "SAO PAULO",
+          txid,
+        });
+      }
 
       await supabaseAdmin
         .from("faturas")
@@ -194,13 +223,14 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         valor,
         metodo: "pix",
         status: "pendente",
-        gateway: "pix",
+        gateway,
         gateway_payment_id: txid,
       });
     }
 
     return { valor, copia_cola: copiaCola, txid, status: fatura.status as string };
   });
+
 
 /**
  * Consulta leve usada pelo polling da tela — devolve o status atual da fatura
@@ -212,11 +242,33 @@ export const consultarStatusFatura = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: fatura } = await supabaseAdmin
       .from("faturas")
-      .select("status")
+      .select("id, status, pix_txid")
       .eq("id", data.fatura_id)
       .maybeSingle();
-    return { status: (fatura?.status as string) ?? "em_aberto" };
+
+    if (!fatura) return { status: "em_aberto" };
+    if (fatura.status === "paga") return { status: "paga" };
+
+    // Consulta o gateway a cada polling — baixa automática mesmo sem webhook.
+    if (fatura.pix_txid) {
+      const { consultarTransacao, pagoNoGateway } = await import("@/lib/cashinpay.server");
+      const statusGateway = await consultarTransacao(fatura.pix_txid);
+      if (pagoNoGateway(statusGateway)) {
+        await supabaseAdmin
+          .from("faturas")
+          .update({ status: "paga", data_pagamento: new Date().toISOString() })
+          .eq("id", fatura.id);
+        await supabaseAdmin
+          .from("pagamentos")
+          .update({ status: "confirmado", pago_em: new Date().toISOString() })
+          .eq("gateway_payment_id", fatura.pix_txid);
+        return { status: "paga" };
+      }
+    }
+
+    return { status: (fatura.status as string) ?? "em_aberto" };
   });
+
 
 /**
  * Baixa automática do pagamento PIX.
