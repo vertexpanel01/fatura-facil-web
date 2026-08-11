@@ -123,6 +123,26 @@ export function CardFatura({
     void QRCode.toDataURL(copiaCola, { width: 480, margin: 1 }).then(setQr).catch(() => setQr(null));
   }, [copiaCola]);
 
+  // Contagem regressiva de validade do PIX.
+  const expiraEm = pix.data?.expira_em ?? null;
+  const [restante, setRestante] = useState<number | null>(null);
+  useEffect(() => {
+    if (!expiraEm) {
+      setRestante(null);
+      return;
+    }
+    const alvo = new Date(expiraEm).getTime();
+    const tick = () => setRestante(Math.max(0, Math.floor((alvo - Date.now()) / 1000)));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [expiraEm]);
+
+  const tempo =
+    restante == null
+      ? null
+      : `${String(Math.floor(restante / 60)).padStart(2, "0")}:${String(restante % 60).padStart(2, "0")}`;
+
   const copiar = useMutation({
     mutationFn: async () => {
       await navigator.clipboard.writeText(copiaCola);
@@ -238,7 +258,15 @@ export function CardFatura({
 
 
 
-              <p className="mt-4 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+              {tempo ? (
+                <p className="mt-4 text-xs font-semibold text-foreground">
+                  {restante === 0
+                    ? "Este código PIX expirou. Atualize a página para gerar um novo."
+                    : `Este código PIX expira em ${tempo}`}
+                </p>
+              ) : null}
+
+              <p className="mt-2 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
                 <Loader2 className="size-3.5 animate-spin" />
                 Aguardando confirmação do pagamento…
               </p>
