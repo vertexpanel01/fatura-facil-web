@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, FileText, LogOut, Receipt, Shuffle } from "lucide-react";
+import { BarChart3, FileText, LogOut, QrCode, Receipt, ScrollText, Shuffle } from "lucide-react";
 
 import logo from "@/assets/logo-claro.png";
 import { Button } from "@/components/ui/button";
