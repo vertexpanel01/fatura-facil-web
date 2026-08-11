@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertCircle, CheckCircle2, Copy, Loader2, QrCode, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, Copy, Loader2, QrCode, RefreshCw, ShieldCheck } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 
@@ -83,6 +83,7 @@ export function CardFatura({
 
   const [status, setStatus] = useState<string>(fatura.status);
   const [qr, setQr] = useState<string | null>(null);
+  const [pixManual, setPixManual] = useState<PixGerado | null>(null);
 
   const valorPagar = useMemo(
     () => (fatura.valor_desconto > 0 ? fatura.valor_desconto : fatura.valor_original),
@@ -95,13 +96,35 @@ export function CardFatura({
   const mensagem = MENSAGEM_STATUS[status] ?? "Não foi possível determinar a situação desta fatura.";
 
   // Gera o PIX automaticamente ao abrir a fatura (menos um passo para o cliente).
-  const pix = useQuery({
+  // Uma única chamada ao backend por carregamento da página — o backend decide
+  // se cria uma cobrança nova (padrão) ou reaproveita uma ainda válida.
+  const pixInicial = useQuery({
     queryKey: ["pix", fatura.id],
     queryFn: () => gerarPix({ data: { fatura_id: fatura.id } }),
     enabled: pagavel,
-    staleTime: Infinity,
+    gcTime: 0,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     retry: false,
   });
+
+  // "Gerar novo PIX": sempre cria uma cobrança nova na gateway.
+  const novoPix = useMutation({
+    mutationFn: () => gerarPix({ data: { fatura_id: fatura.id, forcar: true } }),
+    onSuccess: (r) => {
+      setPixManual(r);
+      if (r.disponivel) toast.success("Novo código PIX gerado.");
+      else toast.error(r.mensagem ?? "Pagamento indisponível no momento.");
+    },
+    onError: () => toast.error("Não foi possível gerar um novo PIX agora."),
+  });
+
+  const pix = {
+    data: pixManual ?? pixInicial.data,
+    isPending: pixInicial.isPending || novoPix.isPending,
+    error: pixInicial.error,
+  };
 
   // Polling: confirma o pagamento no gateway e atualiza a tela sem recarregar.
   useQuery({
@@ -125,6 +148,7 @@ export function CardFatura({
 
   // Contagem regressiva de validade do PIX.
   const expiraEm = pix.data?.expira_em ?? null;
+  const expirou = restanteZero(expiraEm);
   const [restante, setRestante] = useState<number | null>(null);
   useEffect(() => {
     if (!expiraEm) {
@@ -253,6 +277,21 @@ export function CardFatura({
               >
                 <Copy className="size-5" />
                 Copiar código PIX
+              </Button>
+
+              <Button
+                variant={restante === 0 ? "default" : "outline"}
+                size="lg"
+                className="mt-3 h-12 w-full rounded-full text-sm font-semibold"
+                onClick={() => novoPix.mutate()}
+                disabled={novoPix.isPending}
+              >
+                {novoPix.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-4" />
+                )}
+                Gerar novo PIX
               </Button>
 
 
