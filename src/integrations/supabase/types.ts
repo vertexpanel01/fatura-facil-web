@@ -290,6 +290,61 @@ export type Database = {
         }
         Relationships: []
       }
+      pix_generation_requests: {
+        Row: {
+          created_at: string
+          erro: string | null
+          fatura_id: string
+          id: string
+          request_key: string
+          status: string
+          transacao_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          fatura_id: string
+          id?: string
+          request_key: string
+          status?: string
+          transacao_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          fatura_id?: string
+          id?: string
+          request_key?: string
+          status?: string
+          transacao_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_generation_requests_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pix_generation_requests_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "faturas_por_telefone"
+            referencedColumns: ["fatura_id"]
+          },
+          {
+            foreignKeyName: "pix_generation_requests_transacao_id_fkey"
+            columns: ["transacao_id"]
+            isOneToOne: false
+            referencedRelation: "transacoes_pix"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
