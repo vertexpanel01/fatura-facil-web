@@ -1,17 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
   BarChart3,
   CalendarDays,
   Coins,
   ReceiptText,
+  Trash2,
   Users,
   UserCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { obterMetricasAcessos } from "@/lib/acessos.functions";
+import { limparAcessos, obterMetricasAcessos } from "@/lib/acessos.functions";
 import { formatarData, formatarMoeda, formatarTelefone } from "@/lib/format";
 
 
