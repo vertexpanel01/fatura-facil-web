@@ -25,6 +25,7 @@ import { Route as ApiPublicCashinpayWebhookRouteImport } from './routes/api/publ
 import { Route as ApiPublicCobrancaRouteImport } from './routes/api/public/cobranca'
 import { Route as ApiPublicFaturasRouteImport } from './routes/api/public/faturas'
 import { Route as ApiPublicPixWebhookRouteImport } from './routes/api/public/pix-webhook'
+import { Route as ApiPublicWebhooksSlugRouteImport } from './routes/api/public/webhooks/$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -110,6 +111,11 @@ const ApiPublicPixWebhookRoute = ApiPublicPixWebhookRouteImport.update({
   path: '/api/public/pix-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWebhooksSlugRoute = ApiPublicWebhooksSlugRouteImport.update({
+  id: '/api/public/webhooks/$slug',
+  path: '/api/public/webhooks/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/pix-webhook': typeof ApiPublicPixWebhookRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/api/public/faturas'
     | '/api/public/pix-webhook'
     | '/admin/'
+    | '/api/public/webhooks/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/api/public/faturas'
     | '/api/public/pix-webhook'
     | '/admin'
+    | '/api/public/webhooks/$slug'
   id:
     | '__root__'
     | '/'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/api/public/faturas'
     | '/api/public/pix-webhook'
     | '/_authenticated/admin/'
+    | '/api/public/webhooks/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -228,6 +240,7 @@ export interface RootRouteChildren {
   ApiPublicCobrancaRoute: typeof ApiPublicCobrancaRoute
   ApiPublicFaturasRoute: typeof ApiPublicFaturasRoute
   ApiPublicPixWebhookRoute: typeof ApiPublicPixWebhookRoute
+  ApiPublicWebhooksSlugRoute: typeof ApiPublicWebhooksSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -344,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPixWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/webhooks/$slug': {
+      id: '/api/public/webhooks/$slug'
+      path: '/api/public/webhooks/$slug'
+      fullPath: '/api/public/webhooks/$slug'
+      preLoaderRoute: typeof ApiPublicWebhooksSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -388,17 +408,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCobrancaRoute: ApiPublicCobrancaRoute,
   ApiPublicFaturasRoute: ApiPublicFaturasRoute,
   ApiPublicPixWebhookRoute: ApiPublicPixWebhookRoute,
+  ApiPublicWebhooksSlugRoute: ApiPublicWebhooksSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
