@@ -117,30 +117,63 @@ export async function criarCobrancaPix(entrada: {
   };
   if (entrada.webhookUrl) corpo["postbackUrl"] = entrada.webhookUrl;
 
-  let resposta: Response;
-  try {
-    resposta = await fetch(`${BASE}/transactions`, {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify(corpo),
-    });
-  } catch {
-    return null;
-  }
+  // O gateway retorna 502 de forma intermitente: tentamos algumas vezes,
+  // com um sufixo novo no transaction_id a cada retentativa.
+  let bruto = "";
+  let json:
+    | { success?: boolean; data?: unknown; error?: { message?: string } }
+    | null = null;
+  let ultimoStatus = 0;
+  let idUsado = transactionId;
 
-  const bruto = await resposta.text().catch(() => "");
-  const json = (() => {
+  for (let tentativa = 0; tentativa < 4; tentativa++) {
+    idUsado = tentativa === 0 ? transactionId : `${transactionId}_r${tentativa}`;
+    corpo["transaction_id"] = idUsado;
+
+    let resposta: Response;
     try {
-      return JSON.parse(bruto) as { success?: boolean; data?: unknown; error?: { message?: string } };
+      resposta = await fetch(`${BASE}/transactions`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(corpo),
+      });
     } catch {
-      return null;
+      await new Promise((r) => setTimeout(r, 400 * (tentativa + 1)));
+      continue;
     }
-  })();
 
-  if (!resposta.ok || !json?.success) {
-    console.error("[cashinpay] falha ao criar cobrança", resposta.status, bruto.slice(0, 500));
+    ultimoStatus = resposta.status;
+    bruto = await resposta.text().catch(() => "");
+    json = (() => {
+      try {
+        return JSON.parse(bruto) as {
+          success?: boolean;
+          data?: unknown;
+          error?: { message?: string };
+        };
+      } catch {
+        return null;
+      }
+    })();
+
+    if (resposta.ok && json?.success) break;
+
+    console.error(
+      "[cashinpay] falha ao criar cobrança",
+      resposta.status,
+      bruto.slice(0, 300),
+    );
+    json = null;
+    // Erros de validação (4xx) não adianta repetir.
+    if (resposta.status >= 400 && resposta.status < 500) return null;
+    await new Promise((r) => setTimeout(r, 400 * (tentativa + 1)));
+  }
+
+  if (!json?.success) {
+    console.error("[cashinpay] cobrança não criada após retentativas", ultimoStatus);
     return null;
   }
+
 
 
   const dados = (json.data ?? json) as Record<string, unknown>;
