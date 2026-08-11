@@ -317,7 +317,7 @@ export const consultarStatusFatura = createServerFn({ method: "POST" })
 
 /**
  * A baixa do pagamento acontece EXCLUSIVAMENTE por confirmação do gateway:
- * webhooks (/api/public/pix-webhook, /api/public/cashinpay-webhook) ou o
+ * webhook unificado (/api/public/webhooks/<gateway>) ou o
  * polling em consultarStatusFatura. Não existe confirmação manual pelo
  * visitante — isso permitiria marcar faturas como pagas sem pagamento real.
  */

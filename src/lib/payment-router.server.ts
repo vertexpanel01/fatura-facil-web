@@ -243,6 +243,16 @@ export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<Transaca
 
   try {
     const db = await admin();
+    const { data: fatura } = await db
+      .from("faturas")
+      .select("status")
+      .eq("id", pedido.faturaId)
+      .maybeSingle();
+    if (!fatura || fatura.status === "paga") {
+      const mensagem = fatura ? "A fatura já está paga." : "Fatura não encontrada.";
+      await falharSolicitacao(reserva.solicitacao.id, mensagem);
+      throw new Error(mensagem);
+    }
     const ordem = await ordemDeTentativa();
     if (ordem.length === 0) {
       await registrarLog({
@@ -306,7 +316,7 @@ export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<Transaca
           copia_cola: criado.copiaCola,
           qrcode: criado.qrcode ?? null,
           status: "pendente",
-          idempotency_key: novaChaveIdempotencia(pedido.faturaId),
+          idempotency_key: pedido.requestKey,
           expira_em: expira,
         })
         .select(
