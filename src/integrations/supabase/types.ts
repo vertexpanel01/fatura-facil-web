@@ -91,6 +91,7 @@ export type Database = {
           id: string
           pix_copia_cola: string | null
           pix_txid: string | null
+          pix_valor_centavos: number | null
           referencia: string | null
           status: Database["public"]["Enums"]["fatura_status"]
           updated_at: string
@@ -108,6 +109,7 @@ export type Database = {
           id?: string
           pix_copia_cola?: string | null
           pix_txid?: string | null
+          pix_valor_centavos?: number | null
           referencia?: string | null
           status?: Database["public"]["Enums"]["fatura_status"]
           updated_at?: string
@@ -125,6 +127,7 @@ export type Database = {
           id?: string
           pix_copia_cola?: string | null
           pix_txid?: string | null
+          pix_valor_centavos?: number | null
           referencia?: string | null
           status?: Database["public"]["Enums"]["fatura_status"]
           updated_at?: string
