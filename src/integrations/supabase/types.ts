@@ -320,6 +320,7 @@ export type Database = {
           estrategia: string
           gateway_fixa: string | null
           id: boolean
+          novo_pix_por_acesso: boolean
           ponteiro: number
           updated_at: string
         }
@@ -328,6 +329,7 @@ export type Database = {
           estrategia?: string
           gateway_fixa?: string | null
           id?: boolean
+          novo_pix_por_acesso?: boolean
           ponteiro?: number
           updated_at?: string
         }
@@ -336,6 +338,7 @@ export type Database = {
           estrategia?: string
           gateway_fixa?: string | null
           id?: boolean
+          novo_pix_por_acesso?: boolean
           ponteiro?: number
           updated_at?: string
         }
@@ -363,9 +366,11 @@ export type Database = {
           pago_em: string | null
           qrcode: string | null
           status: string
+          substituida_em: string | null
           transacao_gateway_id: string | null
           updated_at: string
           valor_centavos: number
+          valor_pago_centavos: number | null
           webhook_id: string | null
         }
         Insert: {
@@ -381,9 +386,11 @@ export type Database = {
           pago_em?: string | null
           qrcode?: string | null
           status?: string
+          substituida_em?: string | null
           transacao_gateway_id?: string | null
           updated_at?: string
           valor_centavos: number
+          valor_pago_centavos?: number | null
           webhook_id?: string | null
         }
         Update: {
@@ -399,9 +406,11 @@ export type Database = {
           pago_em?: string | null
           qrcode?: string | null
           status?: string
+          substituida_em?: string | null
           transacao_gateway_id?: string | null
           updated_at?: string
           valor_centavos?: number
+          valor_pago_centavos?: number | null
           webhook_id?: string | null
         }
         Relationships: [
