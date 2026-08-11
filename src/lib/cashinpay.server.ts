@@ -156,7 +156,7 @@ export async function criarCobrancaPix(entrada: {
 
   // O gateway retorna 502 de forma intermitente: tentamos algumas vezes,
   // com um sufixo novo no transaction_id a cada retentativa.
-  let bruto = "";
+    if (resposta.ok && (json?.success || (json && !json.error && (json.id || (json.data && (json.data as any).id))))) break;
   let json:
     | { success?: boolean; data?: unknown; error?: { message?: string } }
     | null = null;

@@ -204,10 +204,9 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         webhookUrl: `${base}/api/public/cashinpay-webhook`,
       });
 
-          // Se o gateway falhou e não há chave para contingência,
-          // retornamos erro controlado para não travar a interface.
-          console.error("[PIX] Falha na geração: sem gateway e sem chave estática.");
-          throw new Error("Serviço de pagamento temporariamente indisponível.");
+      if (cobranca) {
+        txid = cobranca.id;
+        copiaCola = cobranca.copia_cola;
       } else {
         // Contingência: só usa PIX estático quando existe uma chave PIX REAL
         // configurada. Nunca gera código com chave fictícia.
