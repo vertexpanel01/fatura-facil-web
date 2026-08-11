@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { limparAcessos, obterMetricasAcessos } from "@/lib/acessos.functions";
+import { formatarMoeda } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
@@ -66,7 +67,7 @@ function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            Clientes que acessaram, clientes cadastrados e faturas visualizadas.
+            Clientes, faturas visualizadas e valor total visualizado.
           </p>
         </div>
         <Button
@@ -88,7 +89,7 @@ function Dashboard() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Cartao
           titulo="Clientes que acessaram a página"
           valor={(metricas?.clientes_total ?? 0).toLocaleString("pt-BR")}
@@ -107,6 +108,13 @@ function Dashboard() {
           titulo="Total de faturas visualizadas"
           valor={(metricas?.faturas_visualizadas_total ?? 0).toLocaleString("pt-BR")}
           descricao="Faturas consultadas com sucesso"
+          icone={FileText}
+          carregando={carregandoMetricas}
+        />
+        <Cartao
+          titulo="Valor total visualizado"
+          valor={formatarMoeda(metricas?.valor_visualizado_total ?? 0)}
+          descricao="Soma dos valores com desconto visualizados"
           icone={FileText}
           carregando={carregandoMetricas}
         />
