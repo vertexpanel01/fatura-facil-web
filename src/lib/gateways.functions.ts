@@ -49,9 +49,13 @@ export const atualizarGateway = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => atualizarSchema.parse(data))
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
-    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (typeof data.ativo === "boolean") patch["ativo"] = data.ativo;
-    if (typeof data.prioridade === "number") patch["prioridade"] = data.prioridade;
+    const patch: {
+      updated_at: string;
+      ativo?: boolean;
+      prioridade?: number;
+    } = { updated_at: new Date().toISOString() };
+    if (typeof data.ativo === "boolean") patch.ativo = data.ativo;
+    if (typeof data.prioridade === "number") patch.prioridade = data.prioridade;
 
     const { error } = await context.supabase
       .from("gateways_config")
