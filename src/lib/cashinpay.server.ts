@@ -155,10 +155,10 @@ export async function criarCobrancaPix(entrada: {
   ]);
   const id = primeiroCampo(dados, ["id", "transactionId", "transaction_id"]);
 
-  if (!copiaCola || !id) return null;
+  if (!copiaCola) return null;
 
   return {
-    id,
+    id: id ?? transactionId,
     copia_cola: copiaCola,
     status: String((dados as { status?: unknown }).status ?? "pending"),
   };

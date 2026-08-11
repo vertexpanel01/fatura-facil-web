@@ -192,6 +192,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         email: cliente?.email ?? null,
         documento: cliente?.documento ?? null,
         descricao: fatura.descricao || "Fatura",
+        referencia: `fatura_${fatura.id}_${centavos}`,
         webhookUrl: `${base}/api/public/cashinpay-webhook`,
       });
 
