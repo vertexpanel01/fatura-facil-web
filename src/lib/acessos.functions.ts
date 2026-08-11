@@ -157,11 +157,6 @@ export const obterMetricasAcessos = createServerFn({ method: "GET" })
         if (noDia) m.consultas_hoje++;
       }
 
-      if (r.sucesso && r.telefone_consultado) {
-        m.faturas_visualizadas_total++;
-        m.valor_visualizado_total += Number(r.valor_desconto ?? 0);
-      }
-
       if (!r.sucesso || !r.telefone_consultado) continue;
       const tel = r.telefone_consultado;
       const desconto = Number(r.valor_desconto ?? 0);
@@ -170,9 +165,12 @@ export const obterMetricasAcessos = createServerFn({ method: "GET" })
       if (!vistosTotal.has(tel)) {
         vistosTotal.add(tel);
         m.clientes_total++;
+        m.faturas_visualizadas_total++;
+        m.valor_visualizado_total += desconto;
         m.valor_desconto_total += desconto;
         m.valor_aberto_total += aberto;
       }
+
       if (noMes && !vistosMes.has(tel)) {
         vistosMes.add(tel);
         m.clientes_mes++;
