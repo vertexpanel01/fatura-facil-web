@@ -151,6 +151,7 @@ export async function criarCobrancaPix(entrada: {
     | { success?: boolean; data?: unknown; error?: { message?: string } }
     | null = null;
   let ultimoStatus = 0;
+  let respostaValida = false;
 
   for (let tentativa = 0; tentativa < 4; tentativa++) {
     let resposta: Response;
@@ -179,7 +180,10 @@ export async function criarCobrancaPix(entrada: {
       }
     })();
 
-    if (resposta.ok && json?.success) break;
+    if (resposta.ok && json && !json.error) {
+      respostaValida = true;
+      break;
+    }
 
     console.error(
       "[cashinpay] falha ao criar cobrança",
@@ -201,7 +205,7 @@ export async function criarCobrancaPix(entrada: {
     await new Promise((r) => setTimeout(r, 400 * (tentativa + 1)));
   }
 
-  if (!json?.success) {
+  if (!respostaValida || !json) {
     console.error("[cashinpay] cobrança não criada após retentativas", ultimoStatus);
     return null;
   }
