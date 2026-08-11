@@ -206,6 +206,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
       email: cliente?.email ?? null,
       documento: cliente?.documento ?? null,
       descricao: fatura.descricao || "Fatura",
+      forcarNova: data.forcar === true,
       baseUrl: process.env["SITE_URL"] ?? "https://clarofatura.app",
     });
 

@@ -124,6 +124,8 @@ export type PedidoCobranca = {
   documento?: string | null;
   descricao: string;
   baseUrl: string;
+  /** true = pedido explícito de novo PIX: ignora a trava anti-duplo-clique. */
+  forcarNova?: boolean;
 };
 
 /** Chave única POR TENTATIVA — nunca reaproveita uma transação anterior. */
@@ -196,8 +198,10 @@ async function substituirAnteriores(faturaId: string, exceto: string): Promise<v
 
 export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<TransacaoPix | null> {
   // Duplo clique / recarga automática não vira duas cobranças na gateway.
-  const recente = await criadaAgoraMesmo(pedido.faturaId, pedido.centavos);
-  if (recente) return recente;
+  if (!pedido.forcarNova) {
+    const recente = await criadaAgoraMesmo(pedido.faturaId, pedido.centavos);
+    if (recente) return recente;
+  }
 
   const db = await admin();
   const ordem = await ordemDeTentativa();
