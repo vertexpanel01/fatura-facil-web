@@ -107,17 +107,18 @@ function Dashboard() {
         <Cartao
           titulo="Total de faturas visualizadas"
           valor={(metricas?.faturas_visualizadas_total ?? 0).toLocaleString("pt-BR")}
-          descricao="Faturas consultadas com sucesso"
+          descricao="Um registro por cliente, mesmo com vários acessos"
           icone={FileText}
           carregando={carregandoMetricas}
         />
         <Cartao
           titulo="Valor total visualizado"
           valor={formatarMoeda(metricas?.valor_visualizado_total ?? 0)}
-          descricao="Soma dos valores com desconto visualizados"
+          descricao="Soma do valor com desconto do primeiro acesso de cada cliente"
           icone={FileText}
           carregando={carregandoMetricas}
         />
+
       </div>
     </div>
   );

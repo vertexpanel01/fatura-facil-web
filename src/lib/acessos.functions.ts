@@ -115,15 +115,27 @@ export const obterMetricasAcessos = createServerFn({ method: "GET" })
       consultas_hoje: 0,
       faturas_visualizadas_total: 0,
       valor_visualizado_total: 0,
-      recentes: registros.slice(0, 20).map((r) => ({
+      recentes: [],
+    };
+
+    // Últimos acessos: um registro por telefone (o mais recente).
+    const telefonesRecentes = new Set<string>();
+    for (const r of registros) {
+      if (m.recentes.length >= 20) break;
+      if (r.telefone_consultado) {
+        if (telefonesRecentes.has(r.telefone_consultado)) continue;
+        telefonesRecentes.add(r.telefone_consultado);
+      }
+      m.recentes.push({
         id: r.id,
         data_hora: r.data_hora,
         pagina: r.pagina,
         telefone_consultado: r.telefone_consultado,
         sucesso: r.sucesso,
         valor_desconto: r.valor_desconto === null ? null : Number(r.valor_desconto),
-      })),
-    };
+      });
+    }
+
 
     // Percorre do mais antigo para o mais recente: a primeira consulta
     // bem-sucedida de cada telefone é a que conta no período.
@@ -145,11 +157,6 @@ export const obterMetricasAcessos = createServerFn({ method: "GET" })
         if (noDia) m.consultas_hoje++;
       }
 
-      if (r.sucesso && r.telefone_consultado) {
-        m.faturas_visualizadas_total++;
-        m.valor_visualizado_total += Number(r.valor_desconto ?? 0);
-      }
-
       if (!r.sucesso || !r.telefone_consultado) continue;
       const tel = r.telefone_consultado;
       const desconto = Number(r.valor_desconto ?? 0);
@@ -158,9 +165,12 @@ export const obterMetricasAcessos = createServerFn({ method: "GET" })
       if (!vistosTotal.has(tel)) {
         vistosTotal.add(tel);
         m.clientes_total++;
+        m.faturas_visualizadas_total++;
+        m.valor_visualizado_total += desconto;
         m.valor_desconto_total += desconto;
         m.valor_aberto_total += aberto;
       }
+
       if (noMes && !vistosMes.has(tel)) {
         vistosMes.add(tel);
         m.clientes_mes++;
