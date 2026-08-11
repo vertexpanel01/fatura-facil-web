@@ -126,44 +126,78 @@ export type PedidoCobranca = {
   baseUrl: string;
 };
 
-function chaveIdempotencia(faturaId: string, centavos: number): string {
-  return `fatura:${faturaId}:${centavos}`;
+/** Chave única POR TENTATIVA — nunca reaproveita uma transação anterior. */
+function novaChaveIdempotencia(faturaId: string): string {
+  return `fatura:${faturaId}:${Date.now().toString(36)}:${crypto.randomUUID()}`;
 }
 
-/** Transação válida já existente para a fatura + valor (não expirada). */
-async function transacaoVigente(pedido: PedidoCobranca): Promise<TransacaoPix | null> {
+const COLUNAS_TRANSACAO =
+  "id, gateway_slug, transacao_gateway_id, valor_centavos, copia_cola, qrcode, status, expira_em";
+
+/** Transação pendente ainda dentro da validade (só usada quando o reaproveitamento é permitido). */
+export async function buscarTransacaoVigente(
+  faturaId: string,
+  centavos: number,
+): Promise<TransacaoPix | null> {
   const db = await admin();
   const { data } = await db
     .from("transacoes_pix")
-    .select(
-      "id, gateway_slug, transacao_gateway_id, valor_centavos, copia_cola, qrcode, status, expira_em",
-    )
-    .eq("idempotency_key", chaveIdempotencia(pedido.faturaId, pedido.centavos))
+    .select(COLUNAS_TRANSACAO)
+    .eq("fatura_id", faturaId)
+    .eq("status", "pendente")
+    .is("substituida_em", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (!data) return null;
   const t = data as unknown as TransacaoPix;
-  if (t.status === "pago") return t;
   if (!t.copia_cola) return null;
+  if (t.valor_centavos !== centavos) return null;
   if (t.expira_em && new Date(t.expira_em).getTime() <= Date.now()) {
     await db.from("transacoes_pix").update({ status: "expirada" }).eq("id", t.id);
-    // Chave liberada para uma nova tentativa.
-    await db
-      .from("transacoes_pix")
-      .update({ idempotency_key: `${chaveIdempotencia(pedido.faturaId, pedido.centavos)}:${t.id}` })
-      .eq("id", t.id);
     return null;
   }
   return t;
 }
 
 /**
- * Cria (ou reaproveita) a cobrança PIX exclusiva da fatura, com failover
- * entre as gateways ativas. Devolve null quando nenhuma gateway respondeu.
+ * Trava anti-duplo-clique: se uma cobrança para a mesma fatura acabou de ser
+ * criada (poucos segundos), devolve essa em vez de chamar a gateway de novo.
  */
+async function criadaAgoraMesmo(faturaId: string, centavos: number): Promise<TransacaoPix | null> {
+  const db = await admin();
+  const limite = new Date(Date.now() - 8_000).toISOString();
+  const { data } = await db
+    .from("transacoes_pix")
+    .select(COLUNAS_TRANSACAO)
+    .eq("fatura_id", faturaId)
+    .eq("status", "pendente")
+    .eq("valor_centavos", centavos)
+    .is("substituida_em", null)
+    .gte("created_at", limite)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const t = (data as unknown as TransacaoPix | null) ?? null;
+  return t && t.copia_cola ? t : null;
+}
+
+/** Marca as cobranças pendentes anteriores da fatura como substituídas. */
+async function substituirAnteriores(faturaId: string, exceto: string): Promise<void> {
+  const db = await admin();
+  await db
+    .from("transacoes_pix")
+    .update({ status: "substituida", substituida_em: new Date().toISOString() })
+    .eq("fatura_id", faturaId)
+    .eq("status", "pendente")
+    .neq("id", exceto);
+}
+
 export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<TransacaoPix | null> {
-  const vigente = await transacaoVigente(pedido);
-  if (vigente) return vigente;
+  // Duplo clique / recarga automática não vira duas cobranças na gateway.
+  const recente = await criadaAgoraMesmo(pedido.faturaId, pedido.centavos);
+  if (recente) return recente;
 
   const db = await admin();
   const ordem = await ordemDeTentativa();
@@ -228,7 +262,7 @@ export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<Transaca
           copia_cola: criado.copiaCola,
           qrcode: criado.qrcode ?? null,
           status: "pendente",
-          idempotency_key: chaveIdempotencia(pedido.faturaId, pedido.centavos),
+          idempotency_key: novaChaveIdempotencia(pedido.faturaId),
           expira_em: expira,
         })
         .select(
@@ -237,11 +271,11 @@ export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<Transaca
         .maybeSingle();
 
       if (error || !inserida) {
-        // Corrida: outra requisição gravou a mesma chave — reaproveita.
-        const existente = await transacaoVigente(pedido);
-        if (existente) return existente;
         throw new Error(error?.message ?? "Falha ao gravar a transação.");
       }
+
+      // A partir de agora só a transação nova é a vigente.
+      await substituirAnteriores(pedido.faturaId, (inserida as unknown as TransacaoPix).id);
 
       await registrarLog({
         gateway_slug: gw.slug,
@@ -301,7 +335,17 @@ export async function confirmarPagamento(transacaoId: string): Promise<void> {
     .maybeSingle();
   if (!data || data.status === "pago") return;
 
-  await db.from("transacoes_pix").update({ status: "pago", pago_em: agora }).eq("id", data.id);
+  await db
+    .from("transacoes_pix")
+    .update({ status: "pago", pago_em: agora, valor_pago_centavos: data.valor_centavos })
+    .eq("id", data.id);
+  // Nenhuma outra cobrança da mesma fatura continua válida.
+  await db
+    .from("transacoes_pix")
+    .update({ status: "cancelada", substituida_em: agora })
+    .eq("fatura_id", data.fatura_id)
+    .eq("status", "pendente")
+    .neq("id", data.id);
   await db
     .from("faturas")
     .update({ status: "paga", data_pagamento: agora })
