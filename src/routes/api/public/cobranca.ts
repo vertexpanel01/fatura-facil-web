@@ -17,7 +17,7 @@ const bodySchema = z
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Max-Age": "86400",
 };
 
@@ -26,6 +26,12 @@ export const Route = createFileRoute("/api/public/cobranca")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: cors }),
       POST: async ({ request }) => {
+        const { requireAdminFromRequest } = await import("@/lib/api-auth.server");
+        const adminId = await requireAdminFromRequest(request);
+        if (!adminId) {
+          return Response.json({ erro: "Não autorizado." }, { status: 401, headers: cors });
+        }
+
         let corpo: unknown;
         try {
           corpo = await request.json();
@@ -34,6 +40,7 @@ export const Route = createFileRoute("/api/public/cobranca")({
         }
 
         const parsed = bodySchema.safeParse(corpo);
+
         if (!parsed.success) {
           return Response.json(
             { erro: parsed.error.issues[0]?.message ?? "Dados inválidos." },

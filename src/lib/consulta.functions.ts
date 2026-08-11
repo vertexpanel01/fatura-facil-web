@@ -308,60 +308,10 @@ export const consultarStatusFatura = createServerFn({ method: "POST" })
 
 
 /**
- * Baixa automática do pagamento PIX.
- * Enquanto não há gateway real conectado, esta função simula a aprovação:
- * confirma o pagamento e marca a fatura como paga (baixada).
- * Quando o gateway real for plugado, o webhook em /api/public/pix-webhook
- * executa exatamente a mesma baixa.
+ * A baixa do pagamento acontece EXCLUSIVAMENTE por confirmação do gateway:
+ * webhooks (/api/public/pix-webhook, /api/public/cashinpay-webhook) ou o
+ * polling em consultarStatusFatura. Não existe confirmação manual pelo
+ * visitante — isso permitiria marcar faturas como pagas sem pagamento real.
  */
-export const confirmarPagamentoPix = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => pagamentoSchema.parse(data))
-  .handler(async ({ data }): Promise<{ status: string }> => {
-    if (process.env["PIX_SIMULACAO"] === "off") {
-      throw new Error("A confirmação manual está desativada. Aguarde a baixa do gateway.");
-    }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: fatura } = await supabaseAdmin
-      .from("faturas")
-      .select("id, cliente_id, valor_original, valor_desconto, status, pix_txid")
-      .eq("id", data.fatura_id)
-      .maybeSingle();
-
-    if (!fatura) throw new Error("Fatura não encontrada.");
-    if (fatura.status === "paga") return { status: "paga" };
-
-    const valor = Number(fatura.valor_desconto) || Number(fatura.valor_original);
-    const agora = new Date().toISOString();
-
-    const { data: pendente } = await supabaseAdmin
-      .from("pagamentos")
-      .select("id")
-      .eq("fatura_id", fatura.id)
-      .eq("status", "pendente")
-      .limit(1);
-
-    if (pendente?.length && pendente[0]) {
-      await supabaseAdmin
-        .from("pagamentos")
-        .update({ status: "confirmado", pago_em: agora, valor })
-        .eq("id", pendente[0].id);
-    } else {
-      await supabaseAdmin.from("pagamentos").insert({
-        fatura_id: fatura.id,
-        cliente_id: fatura.cliente_id,
-        valor,
-        metodo: "pix",
-        status: "confirmado",
-        gateway: "pix",
-        gateway_payment_id: fatura.pix_txid,
-        pago_em: agora,
-      });
-    }
-
-    await supabaseAdmin.from("faturas").update({ status: "paga" }).eq("id", fatura.id);
-
-    return { status: "paga" };
-  });
 
