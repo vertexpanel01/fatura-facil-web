@@ -49,7 +49,7 @@ export const Route = createFileRoute("/api/public/cobranca")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { gatewayAtual } = await import("@/lib/gateway.server");
+        const { criarCobrancaPix } = await import("@/lib/payment-router.server");
 
         let faturaId = parsed.data.fatura_id ?? null;
         let nomeCliente = "Cliente";
@@ -110,7 +110,7 @@ export const Route = createFileRoute("/api/public/cobranca")({
         if (!telefone) {
           const { data: cliente } = await supabaseAdmin
             .from("clientes")
-            .select("nome, telefone")
+            .select("nome, telefone, email, documento")
             .eq("id", fatura.cliente_id)
             .maybeSingle();
           nomeCliente = cliente?.nome ?? nomeCliente;
@@ -118,30 +118,37 @@ export const Route = createFileRoute("/api/public/cobranca")({
         }
 
         // Valor cobrado é SEMPRE o valor com desconto.
-        const valor = Number(fatura.valor_desconto) || Number(fatura.valor_original) || 0;
+        const valor = Number(fatura.valor_desconto);
+        if (!Number.isFinite(valor) || valor <= 0) {
+          return Response.json(
+            { erro: "A fatura não possui um valor com desconto válido." },
+            { status: 422, headers: cors },
+          );
+        }
 
-        const cobranca = await gatewayAtual.gerar({
+        const { data: clienteCompleto } = await supabaseAdmin
+          .from("clientes")
+          .select("nome, telefone, email, documento")
+          .eq("id", fatura.cliente_id)
+          .maybeSingle();
+
+        const centavos = Math.round(valor * 100);
+        const cobranca = await criarCobrancaPix({
           faturaId: fatura.id,
-          valor,
-          nomeCliente,
-          telefone,
-          vencimento: fatura.vencimento,
+          clienteId: fatura.cliente_id,
+          centavos,
+          nome: clienteCompleto?.nome ?? nomeCliente,
+          telefone: clienteCompleto?.telefone ?? telefone,
+          email: clienteCompleto?.email ?? null,
+          documento: clienteCompleto?.documento ?? null,
+          descricao: "Fatura",
+          requestKey: crypto.randomUUID(),
+          baseUrl: new URL(request.url).origin,
         });
-
-        const { error: updErro } = await supabaseAdmin
-          .from("faturas")
-          .update({
-            pix_copia_cola: cobranca.pix_copia_e_cola,
-            pix_txid: cobranca.pix_txid,
-            boleto_codigo: cobranca.boleto_codigo,
-            boleto_url: cobranca.boleto_url,
-          })
-          .eq("id", fatura.id);
-
-        if (updErro) {
+        if (!cobranca?.copia_cola) {
           return Response.json(
             { erro: "Não foi possível gerar a cobrança agora." },
-            { status: 500, headers: cors },
+            { status: 503, headers: cors },
           );
         }
 
@@ -150,10 +157,9 @@ export const Route = createFileRoute("/api/public/cobranca")({
             fatura_id: fatura.id,
             valor_cobrado: valor,
             data_vencimento: fatura.vencimento,
-            pix_copia_e_cola: cobranca.pix_copia_e_cola,
-            boleto_codigo: cobranca.boleto_codigo,
-            boleto_url: cobranca.boleto_url,
-            gateway: cobranca.gateway,
+            pix_copia_e_cola: cobranca.copia_cola,
+            transaction_id: cobranca.transacao_gateway_id,
+            gateway: cobranca.gateway_slug,
           },
           { headers: cors },
         );

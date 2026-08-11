@@ -132,6 +132,7 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 const pagamentoSchema = z.object({ fatura_id: z.string().uuid() });
 const geracaoSchema = z.object({
   fatura_id: z.string().uuid(),
+  request_key: z.string().uuid(),
   /** true = botão "Gerar novo PIX": ignora qualquer cobrança anterior. */
   forcar: z.boolean().optional(),
 });
@@ -174,8 +175,18 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
     }
 
     // Valor exato com desconto, convertido uma única vez para centavos.
-    const bruto = Number(fatura.valor_desconto) || Number(fatura.valor_original);
-    const centavos = Math.max(1, Math.round(bruto * 100));
+    const bruto = Number(fatura.valor_desconto);
+    const centavos = Math.round(bruto * 100);
+    if (!Number.isFinite(centavos) || centavos <= 0) {
+      return {
+        valor: 0,
+        copia_cola: "",
+        txid: "",
+        status: fatura.status as string,
+        disponivel: false,
+        mensagem: "Esta fatura não possui um valor com desconto válido para pagamento.",
+      };
+    }
     const valor = centavos / 100;
 
     // Reaproveitamento só quando o painel permite E o cliente não pediu novo PIX.
@@ -206,7 +217,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
       email: cliente?.email ?? null,
       documento: cliente?.documento ?? null,
       descricao: fatura.descricao || "Fatura",
-      forcarNova: data.forcar === true,
+      requestKey: data.request_key,
       baseUrl: process.env["SITE_URL"] ?? "https://clarofatura.app",
     });
 
@@ -316,7 +327,7 @@ export const consultarStatusFatura = createServerFn({ method: "POST" })
 
 /**
  * A baixa do pagamento acontece EXCLUSIVAMENTE por confirmação do gateway:
- * webhooks (/api/public/pix-webhook, /api/public/cashinpay-webhook) ou o
+ * webhook unificado (/api/public/webhooks/<gateway>) ou o
  * polling em consultarStatusFatura. Não existe confirmação manual pelo
  * visitante — isso permitiria marcar faturas como pagas sem pagamento real.
  */

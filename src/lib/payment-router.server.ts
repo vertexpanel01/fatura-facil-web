@@ -23,11 +23,68 @@ export type TransacaoPix = {
   expira_em: string | null;
 };
 
+type SolicitacaoPix = {
+  id: string;
+  status: string;
+  transacao_id: string | null;
+};
+
 const MINUTOS_EXPIRACAO = Number(process.env["PIX_EXPIRACAO_MINUTOS"] ?? 30) || 30;
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin;
+}
+
+async function reservarSolicitacao(
+  requestKey: string,
+  faturaId: string,
+): Promise<{ criada: boolean; solicitacao: SolicitacaoPix }> {
+  const db = await admin();
+  const tabela = (db as any).from("pix_generation_requests");
+  const { data, error } = await tabela
+    .insert({ request_key: requestKey, fatura_id: faturaId })
+    .select("id, status, transacao_id")
+    .single();
+  if (!error && data) return { criada: true, solicitacao: data as SolicitacaoPix };
+  if (error?.code !== "23505") throw new Error("Não foi possível iniciar a geração do PIX.");
+
+  const { data: existente, error: erroLeitura } = await (db as any)
+    .from("pix_generation_requests")
+    .select("id, status, transacao_id")
+    .eq("request_key", requestKey)
+    .single();
+  if (erroLeitura || !existente) throw new Error("Não foi possível recuperar a solicitação do PIX.");
+  return { criada: false, solicitacao: existente as SolicitacaoPix };
+}
+
+async function concluirSolicitacao(id: string, transacaoId: string): Promise<void> {
+  const db = await admin();
+  await (db as any)
+    .from("pix_generation_requests")
+    .update({ status: "concluida", transacao_id: transacaoId, erro: null })
+    .eq("id", id);
+}
+
+async function falharSolicitacao(id: string, mensagem: string): Promise<void> {
+  const db = await admin();
+  await (db as any)
+    .from("pix_generation_requests")
+    .update({ status: "falhou", erro: mensagem.slice(0, 500) })
+    .eq("id", id);
+}
+
+async function transacaoDaSolicitacao(
+  solicitacao: SolicitacaoPix,
+): Promise<TransacaoPix | null> {
+  if (solicitacao.status !== "concluida" || !solicitacao.transacao_id) return null;
+  const db = await admin();
+  const { data } = await db
+    .from("transacoes_pix")
+    .select("id, gateway_slug, transacao_gateway_id, valor_centavos, copia_cola, qrcode, status, expira_em")
+    .eq("id", solicitacao.transacao_id)
+    .maybeSingle();
+  return (data as unknown as TransacaoPix | null) ?? null;
 }
 
 export async function registrarLog(entrada: {
@@ -102,12 +159,11 @@ async function ordemDeTentativa(): Promise<GatewayRegistro[]> {
   }
 
   if (cfg.estrategia === "rodizio") {
-    const inicio = cfg.ponteiro % ativos.length;
     const db = await admin();
-    await db
-      .from("roteamento_config")
-      .update({ ponteiro: (inicio + 1) % ativos.length })
-      .eq("id", true);
+    const { data: posicao } = await (db as any).rpc("avancar_ponteiro_gateway", {
+      p_total: ativos.length,
+    });
+    const inicio = Math.abs(Number(posicao ?? cfg.ponteiro ?? 0)) % ativos.length;
     return [...ativos.slice(inicio), ...ativos.slice(0, inicio)];
   }
 
@@ -124,14 +180,9 @@ export type PedidoCobranca = {
   documento?: string | null;
   descricao: string;
   baseUrl: string;
-  /** true = pedido explícito de novo PIX: ignora a trava anti-duplo-clique. */
-  forcarNova?: boolean;
+  /** Identifica uma ação do usuário; retries da mesma ação reutilizam seu resultado. */
+  requestKey: string;
 };
-
-/** Chave única POR TENTATIVA — nunca reaproveita uma transação anterior. */
-function novaChaveIdempotencia(faturaId: string): string {
-  return `fatura:${faturaId}:${Date.now().toString(36)}:${crypto.randomUUID()}`;
-}
 
 const COLUNAS_TRANSACAO =
   "id, gateway_slug, transacao_gateway_id, valor_centavos, copia_cola, qrcode, status, expira_em";
@@ -163,28 +214,6 @@ export async function buscarTransacaoVigente(
   return t;
 }
 
-/**
- * Trava anti-duplo-clique: se uma cobrança para a mesma fatura acabou de ser
- * criada (poucos segundos), devolve essa em vez de chamar a gateway de novo.
- */
-async function criadaAgoraMesmo(faturaId: string, centavos: number): Promise<TransacaoPix | null> {
-  const db = await admin();
-  const limite = new Date(Date.now() - 8_000).toISOString();
-  const { data } = await db
-    .from("transacoes_pix")
-    .select(COLUNAS_TRANSACAO)
-    .eq("fatura_id", faturaId)
-    .eq("status", "pendente")
-    .eq("valor_centavos", centavos)
-    .is("substituida_em", null)
-    .gte("created_at", limite)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const t = (data as unknown as TransacaoPix | null) ?? null;
-  return t && t.copia_cola ? t : null;
-}
-
 /** Marca as cobranças pendentes anteriores da fatura como substituídas. */
 async function substituirAnteriores(faturaId: string, exceto: string): Promise<void> {
   const db = await admin();
@@ -197,26 +226,42 @@ async function substituirAnteriores(faturaId: string, exceto: string): Promise<v
 }
 
 export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<TransacaoPix | null> {
-  // Duplo clique / recarga automática não vira duas cobranças na gateway.
-  if (!pedido.forcarNova) {
-    const recente = await criadaAgoraMesmo(pedido.faturaId, pedido.centavos);
-    if (recente) return recente;
+  const reserva = await reservarSolicitacao(pedido.requestKey, pedido.faturaId);
+  if (!reserva.criada) {
+    const existente = await transacaoDaSolicitacao(reserva.solicitacao);
+    if (existente) return existente;
+    if (reserva.solicitacao.status === "processando") {
+      throw new Error("Esta solicitação PIX já está sendo processada.");
+    }
+    throw new Error("Esta solicitação PIX já foi utilizada.");
   }
 
-  const db = await admin();
-  const ordem = await ordemDeTentativa();
-  if (ordem.length === 0) {
-    await registrarLog({
-      gateway_slug: "-",
-      fatura_id: pedido.faturaId,
-      mensagem: "Nenhuma gateway ativa disponível.",
-    });
-    return null;
-  }
+  try {
+    const db = await admin();
+    const { data: fatura } = await db
+      .from("faturas")
+      .select("status")
+      .eq("id", pedido.faturaId)
+      .maybeSingle();
+    if (!fatura || fatura.status === "paga") {
+      const mensagem = fatura ? "A fatura já está paga." : "Fatura não encontrada.";
+      await falharSolicitacao(reserva.solicitacao.id, mensagem);
+      throw new Error(mensagem);
+    }
+    const ordem = await ordemDeTentativa();
+    if (ordem.length === 0) {
+      await registrarLog({
+        gateway_slug: "-",
+        fatura_id: pedido.faturaId,
+        mensagem: "Nenhuma gateway ativa disponível.",
+      });
+      await falharSolicitacao(reserva.solicitacao.id, "Nenhuma gateway ativa disponível.");
+      return null;
+    }
 
-  const referencia = `fatura_${pedido.faturaId}_${pedido.centavos}_${Date.now().toString(36)}`;
+    const referencia = pedido.requestKey;
 
-  for (const gw of ordem) {
+    for (const gw of ordem) {
     const adaptador = adaptadorDe(gw);
 
     if (!adaptador.configurado(gw)) {
@@ -266,7 +311,7 @@ export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<Transaca
           copia_cola: criado.copiaCola,
           qrcode: criado.qrcode ?? null,
           status: "pendente",
-          idempotency_key: novaChaveIdempotencia(pedido.faturaId),
+          idempotency_key: pedido.requestKey,
           expira_em: expira,
         })
         .select(
@@ -288,7 +333,9 @@ export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<Transaca
         mensagem: `PIX criado (${pedido.centavos} centavos).`,
       });
 
-      return inserida as unknown as TransacaoPix;
+      const transacao = inserida as unknown as TransacaoPix;
+      await concluirSolicitacao(reserva.solicitacao.id, transacao.id);
+      return transacao;
     } catch (erro) {
       await registrarLog({
         gateway_slug: gw.slug,
@@ -296,9 +343,17 @@ export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<Transaca
         mensagem: erro instanceof Error ? erro.message : "Falha desconhecida na gateway.",
       });
     }
-  }
+    }
 
-  return null;
+    await falharSolicitacao(reserva.solicitacao.id, "Nenhum gateway conseguiu gerar o PIX.");
+    return null;
+  } catch (erro) {
+    await falharSolicitacao(
+      reserva.solicitacao.id,
+      erro instanceof Error ? erro.message : "Falha desconhecida ao gerar o PIX.",
+    );
+    throw erro;
+  }
 }
 
 /** Consulta o status da transação diretamente na gateway que a criou. */

@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/public/webhooks/$slug")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { adaptadorDe } = await import("@/lib/gateways/adapters.server");
-        const { confirmarPagamento } = await import("@/lib/payment-router.server");
+        const { confirmarPagamento, statusNaGateway } = await import("@/lib/payment-router.server");
 
         const { data } = await supabaseAdmin
           .from("gateways_config")
@@ -46,13 +46,18 @@ export const Route = createFileRoute("/api/public/webhooks/$slug")({
 
         const { data: transacao } = await supabaseAdmin
           .from("transacoes_pix")
-          .select("id, status")
+          .select("id, gateway_slug, transacao_gateway_id, valor_centavos, copia_cola, qrcode, status, expira_em")
+          .eq("gateway_slug", slug)
           .eq("transacao_gateway_id", leitura.transacaoId)
           .maybeSingle();
 
         if (!transacao) return new Response("Transação não encontrada", { status: 404 });
 
         if (adaptadorDe(gw).pago(leitura.status)) {
+          const confirmadoNaGateway = await statusNaGateway(transacao);
+          if (!confirmadoNaGateway) {
+            return new Response("Pagamento ainda não confirmado pela gateway", { status: 202 });
+          }
           await confirmarPagamento(transacao.id);
         } else if (leitura.status) {
           await supabaseAdmin
