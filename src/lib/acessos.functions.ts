@@ -56,6 +56,7 @@ export type MetricasAcessos = {
   acessos_total: number;
   consultas_total: number;
   consultas_hoje: number;
+  faturas_visualizadas_total: number;
   recentes: AcessoRecente[];
 };
 
@@ -111,6 +112,7 @@ export const obterMetricasAcessos = createServerFn({ method: "GET" })
       acessos_total: registros.length,
       consultas_total: 0,
       consultas_hoje: 0,
+      faturas_visualizadas_total: 0,
       recentes: registros.slice(0, 20).map((r) => ({
         id: r.id,
         data_hora: r.data_hora,
@@ -139,6 +141,10 @@ export const obterMetricasAcessos = createServerFn({ method: "GET" })
       if (r.telefone_consultado) {
         m.consultas_total++;
         if (noDia) m.consultas_hoje++;
+      }
+
+      if (r.sucesso && r.telefone_consultado) {
+        m.faturas_visualizadas_total++;
       }
 
       if (!r.sucesso || !r.telefone_consultado) continue;
