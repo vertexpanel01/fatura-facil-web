@@ -23,6 +23,7 @@ export type GatewayConfig = {
 export type RoteamentoConfig = {
   estrategia: string;
   gateway_fixa: string | null;
+  novo_pix_por_acesso: boolean;
 };
 
 const COLUNAS =
@@ -75,18 +76,20 @@ export const lerRoteamento = createServerFn({ method: "POST" })
   .handler(async ({ context }): Promise<RoteamentoConfig> => {
     const { data } = await context.supabase
       .from("roteamento_config")
-      .select("estrategia, gateway_fixa")
+      .select("estrategia, gateway_fixa, novo_pix_por_acesso")
       .eq("id", true)
       .maybeSingle();
     return {
       estrategia: data?.estrategia ?? "prioridade",
       gateway_fixa: data?.gateway_fixa ?? null,
+      novo_pix_por_acesso: data?.novo_pix_por_acesso ?? true,
     };
   });
 
 const roteamentoSchema = z.object({
   estrategia: z.enum(ESTRATEGIAS),
   gateway_fixa: z.string().uuid().nullable().optional(),
+  novo_pix_por_acesso: z.boolean().optional(),
 });
 
 export const salvarRoteamento = createServerFn({ method: "POST" })
@@ -100,6 +103,9 @@ export const salvarRoteamento = createServerFn({ method: "POST" })
       .update({
         estrategia: data.estrategia,
         gateway_fixa: data.estrategia === "fixa" ? (data.gateway_fixa ?? null) : null,
+        ...(typeof data.novo_pix_por_acesso === "boolean"
+          ? { novo_pix_por_acesso: data.novo_pix_por_acesso }
+          : {}),
       })
       .eq("id", true);
     if (error) throw new Error("Não foi possível salvar a estratégia.");

@@ -130,6 +130,11 @@ export const consultarFaturas = createServerFn({ method: "POST" })
 
 
 const pagamentoSchema = z.object({ fatura_id: z.string().uuid() });
+const geracaoSchema = z.object({
+  fatura_id: z.string().uuid(),
+  /** true = botão "Gerar novo PIX": ignora qualquer cobrança anterior. */
+  forcar: z.boolean().optional(),
+});
 
 export type PixGerado = {
   valor: number;
@@ -137,20 +142,25 @@ export type PixGerado = {
   txid: string;
   status: string;
   disponivel: boolean;
+  transacao_id?: string;
   gateway?: string;
   expira_em?: string | null;
   mensagem?: string;
 };
 
 /**
- * Gera (ou reaproveita) a cobrança PIX exclusiva da fatura através do
- * Payment Router. O valor enviado é SEMPRE o valor com desconto.
+ * Gera a cobrança PIX da fatura através do Payment Router. Por padrão cria uma
+ * NOVA cobrança na gateway a cada acesso; só reaproveita uma cobrança pendente
+ * e válida quando o painel desativa "Gerar novo PIX a cada acesso" e o cliente
+ * não pediu explicitamente um novo código. O valor é SEMPRE o valor com desconto.
  */
 export const gerarPixFatura = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => pagamentoSchema.parse(data))
+  .inputValidator((data: unknown) => geracaoSchema.parse(data))
   .handler(async ({ data }): Promise<PixGerado> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { criarCobrancaPix } = await import("@/lib/payment-router.server");
+    const { buscarTransacaoVigente, criarCobrancaPix } = await import(
+      "@/lib/payment-router.server"
+    );
 
     const { data: fatura, error } = await supabaseAdmin
       .from("faturas")
@@ -168,13 +178,26 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
     const centavos = Math.max(1, Math.round(bruto * 100));
     const valor = centavos / 100;
 
+    // Reaproveitamento só quando o painel permite E o cliente não pediu novo PIX.
+    let transacao = null as Awaited<ReturnType<typeof criarCobrancaPix>>;
+    if (!data.forcar) {
+      const { data: cfg } = await supabaseAdmin
+        .from("roteamento_config")
+        .select("novo_pix_por_acesso")
+        .eq("id", true)
+        .maybeSingle();
+      if (cfg?.novo_pix_por_acesso === false) {
+        transacao = await buscarTransacaoVigente(fatura.id, centavos);
+      }
+    }
+
     const { data: cliente } = await supabaseAdmin
       .from("clientes")
       .select("nome, telefone, email, documento")
       .eq("id", fatura.cliente_id)
       .maybeSingle();
 
-    const transacao = await criarCobrancaPix({
+    transacao ??= await criarCobrancaPix({
       faturaId: fatura.id,
       clienteId: fatura.cliente_id,
       centavos,
@@ -183,6 +206,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
       email: cliente?.email ?? null,
       documento: cliente?.documento ?? null,
       descricao: fatura.descricao || "Fatura",
+      forcarNova: data.forcar === true,
       baseUrl: process.env["SITE_URL"] ?? "https://clarofatura.app",
     });
 
@@ -242,6 +266,7 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
       txid: transacao.transacao_gateway_id ?? "",
       status: transacao.status === "pago" ? "paga" : (fatura.status as string),
       disponivel: true,
+      transacao_id: transacao.id,
       gateway: transacao.gateway_slug,
       expira_em: transacao.expira_em,
     };
