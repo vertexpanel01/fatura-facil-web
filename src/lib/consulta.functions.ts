@@ -232,12 +232,13 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
 
     const { data: existente } = await supabaseAdmin
       .from("pagamentos")
-      .select("id")
+      .select("id, valor")
       .eq("fatura_id", fatura.id)
       .eq("status", "pendente")
       .limit(1);
 
-    if (!existente?.length) {
+    const pendente = existente?.[0];
+    if (!pendente) {
       await supabaseAdmin.from("pagamentos").insert({
         fatura_id: fatura.id,
         cliente_id: fatura.cliente_id,
@@ -247,7 +248,14 @@ export const gerarPixFatura = createServerFn({ method: "POST" })
         gateway,
         gateway_payment_id: txid,
       });
+    } else if (Math.round(Number(pendente.valor) * 100) !== centavos) {
+      // Valor da fatura mudou: o pagamento pendente passa a refletir o novo valor.
+      await supabaseAdmin
+        .from("pagamentos")
+        .update({ valor, gateway, gateway_payment_id: txid })
+        .eq("id", pendente.id);
     }
+
 
     return { valor, copia_cola: copiaCola, txid, status: fatura.status as string };
   });
