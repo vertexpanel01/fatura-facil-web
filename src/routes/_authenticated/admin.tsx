@@ -32,6 +32,9 @@ const itens = [
   { to: "/admin/faturas", label: "Clientes e Faturas", icon: FileText, exact: false },
   { to: "/admin/pagamentos", label: "Pagamentos", icon: Receipt, exact: false },
   { to: "/admin/gateways", label: "Gateways", icon: Shuffle, exact: false },
+  { to: "/admin/transacoes", label: "Transações PIX", icon: QrCode, exact: false },
+  { to: "/admin/logs", label: "Logs", icon: ScrollText, exact: false },
+
 ] as const;
 
 function LayoutAdmin() {
