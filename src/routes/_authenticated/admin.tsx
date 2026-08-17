@@ -8,23 +8,58 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user) throw redirect({ to: "/auth" });
+    // Falhas de rede ou sessão inválida não devem quebrar a tela:
+    // nesses casos limpamos a sessão e voltamos para o login.
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) throw redirect({ to: "/auth" });
 
-    const { data: papeis } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userData.user.id)
-      .eq("role", "admin")
-      .maybeSingle();
+      const { data: papeis, error: erroPapel } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userData.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
 
-    if (!papeis) {
-      await supabase.auth.signOut();
+      if (erroPapel) throw redirect({ to: "/auth" });
+
+      if (!papeis) {
+        await supabase.auth.signOut();
+        throw redirect({ to: "/auth" });
+      }
+    } catch (erro) {
+      if (isRedirect(erro)) throw erro;
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignora */
+      }
       throw redirect({ to: "/auth" });
     }
   },
   component: LayoutAdmin,
+  errorComponent: ErroAdmin,
 });
+
+function ErroAdmin() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <h1 className="text-xl font-semibold text-foreground">Não foi possível abrir o painel</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sua sessão pode ter expirado. Entre novamente para continuar.
+        </p>
+        <div className="mt-6 flex justify-center gap-2">
+          <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+          <Button variant="outline" asChild>
+            <a href="/auth">Entrar novamente</a>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 
 const itens = [
