@@ -37,6 +37,8 @@ import {
   usarSomente,
 } from "@/lib/gateways.functions";
 import type { GatewayConfig } from "@/lib/gateways.functions";
+import { resumoWebhooksPorGateway } from "@/lib/transacoes.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/gateways")({
   head: () => ({
