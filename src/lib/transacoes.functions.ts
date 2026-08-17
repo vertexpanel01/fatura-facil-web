@@ -97,6 +97,11 @@ export type LogWebhook = {
   assinatura_valida: boolean;
   resumo: string | null;
   created_at: string;
+  cliente_nome: string | null;
+  cliente_telefone: string | null;
+  valor_centavos: number | null;
+  status_transacao: string | null;
+  reconhecido: boolean;
 };
 
 export const listarLogs = createServerFn({ method: "POST" })
@@ -116,9 +121,164 @@ export const listarLogs = createServerFn({ method: "POST" })
           .limit(100),
       ]);
 
+      const ids = [
+        ...new Set(
+          (webhooks ?? [])
+            .map((w) => w.transacao_gateway_id)
+            .filter((v): v is string => Boolean(v)),
+        ),
+      ];
+
+      const porTransacao = new Map<
+        string,
+        { nome: string | null; telefone: string | null; valor: number; status: string }
+      >();
+
+      if (ids.length) {
+        const { data: transacoes } = await context.supabase
+          .from("transacoes_pix")
+          .select("transacao_gateway_id, valor_centavos, status, clientes(nome, telefone)")
+          .in("transacao_gateway_id", ids);
+
+        for (const t of transacoes ?? []) {
+          if (!t.transacao_gateway_id) continue;
+          const c = (t as unknown as { clientes?: { nome: string; telefone: string } | null }).clientes;
+          porTransacao.set(t.transacao_gateway_id, {
+            nome: c?.nome ?? null,
+            telefone: c?.telefone ?? null,
+            valor: t.valor_centavos,
+            status: t.status,
+          });
+        }
+      }
+
       return {
         pagamentos: (pagamentos ?? []) as LogPagamento[],
-        webhooks: (webhooks ?? []) as LogWebhook[],
+        webhooks: (webhooks ?? []).map((w) => {
+          const t = w.transacao_gateway_id ? porTransacao.get(w.transacao_gateway_id) : undefined;
+          return {
+            ...w,
+            cliente_nome: t?.nome ?? null,
+            cliente_telefone: t?.telefone ?? null,
+            valor_centavos: t?.valor ?? null,
+            status_transacao: t?.status ?? null,
+            reconhecido: Boolean(t),
+          } as LogWebhook;
+        }),
       };
     },
   );
+
+export type PagamentoRecebido = {
+  id: string;
+  cliente_nome: string | null;
+  cliente_telefone: string | null;
+  gateway_slug: string;
+  valor_centavos: number;
+  valor_fatura_centavos: number | null;
+  pago_em: string;
+  confirmado_por: "webhook" | "consulta";
+  status_fatura: string | null;
+  descricao: string | null;
+};
+
+export const listarPagamentosRecebidos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        gateway: z.string().optional(),
+        dias: z.number().int().min(1).max(365).optional(),
+      })
+      .parse(data ?? {}),
+  )
+  .handler(async ({ data, context }): Promise<PagamentoRecebido[]> => {
+    const desde = new Date(Date.now() - (data.dias ?? 30) * 86400000).toISOString();
+
+    let consulta = context.supabase
+      .from("transacoes_pix")
+      .select(
+        "id, gateway_slug, transacao_gateway_id, valor_centavos, valor_pago_centavos, pago_em, clientes(nome, telefone), faturas(descricao, status, valor_desconto)",
+      )
+      .not("pago_em", "is", null)
+      .gte("pago_em", desde)
+      .order("pago_em", { ascending: false })
+      .limit(300);
+
+    if (data.gateway && data.gateway !== "todas") {
+      consulta = consulta.eq("gateway_slug", data.gateway);
+    }
+
+    const { data: linhas, error } = await consulta;
+    if (error) throw new Error("Não foi possível carregar os pagamentos recebidos.");
+
+    const ids = [
+      ...new Set(
+        (linhas ?? []).map((l) => l.transacao_gateway_id).filter((v): v is string => Boolean(v)),
+      ),
+    ];
+
+    const viaWebhook = new Set<string>();
+    if (ids.length) {
+      const { data: hooks } = await context.supabase
+        .from("webhooks_log")
+        .select("transacao_gateway_id")
+        .in("transacao_gateway_id", ids);
+      for (const h of hooks ?? []) {
+        if (h.transacao_gateway_id) viaWebhook.add(h.transacao_gateway_id);
+      }
+    }
+
+    return (linhas ?? []).map((l) => {
+      const c = (l as unknown as { clientes?: { nome: string; telefone: string } | null }).clientes;
+      const f = (
+        l as unknown as {
+          faturas?: { descricao: string; status: string; valor_desconto: number } | null;
+        }
+      ).faturas;
+      return {
+        id: l.id,
+        cliente_nome: c?.nome ?? null,
+        cliente_telefone: c?.telefone ?? null,
+        gateway_slug: l.gateway_slug,
+        valor_centavos: l.valor_pago_centavos ?? l.valor_centavos,
+        valor_fatura_centavos: f ? Math.round(Number(f.valor_desconto) * 100) : null,
+        pago_em: l.pago_em as string,
+        confirmado_por:
+          l.transacao_gateway_id && viaWebhook.has(l.transacao_gateway_id) ? "webhook" : "consulta",
+        status_fatura: f?.status ?? null,
+        descricao: f?.descricao ?? null,
+      };
+    });
+  });
+
+export type ResumoWebhookGateway = {
+  gateway_slug: string;
+  ultimo_em: string | null;
+  total_24h: number;
+};
+
+export const resumoWebhooksPorGateway = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ResumoWebhookGateway[]> => {
+    const { data } = await context.supabase
+      .from("webhooks_log")
+      .select("gateway_slug, created_at")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+
+    const limite = Date.now() - 86400000;
+    const mapa = new Map<string, ResumoWebhookGateway>();
+    for (const l of data ?? []) {
+      const atual = mapa.get(l.gateway_slug) ?? {
+        gateway_slug: l.gateway_slug,
+        ultimo_em: null,
+        total_24h: 0,
+      };
+      if (!atual.ultimo_em) atual.ultimo_em = l.created_at;
+      if (new Date(l.created_at).getTime() >= limite) atual.total_24h += 1;
+      mapa.set(l.gateway_slug, atual);
+    }
+    return [...mapa.values()];
+  });
+
