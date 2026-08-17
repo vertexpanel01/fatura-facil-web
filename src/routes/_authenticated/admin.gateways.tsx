@@ -203,10 +203,19 @@ function PaginaGateways() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível salvar."),
   });
 
+  const buscarResumo = useServerFn(resumoWebhooksPorGateway);
+  const resumo = useQuery({
+    queryKey: ["resumo-webhooks"],
+    queryFn: () => buscarResumo({ data: undefined }),
+    refetchInterval: 30000,
+  });
+  const porGateway = new Map((resumo.data ?? []).map((r) => [r.gateway_slug, r]));
+
   const lista = data ?? [];
   const ativos = lista.filter((g) => g.ativo).length;
   const estrategia = roteamento.data?.estrategia ?? "prioridade";
   const origem = typeof window === "undefined" ? "" : window.location.origin;
+
 
   return (
     <div className="space-y-6">
