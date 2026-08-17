@@ -308,12 +308,33 @@ function PaginaGateways() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Como configurar o webhook na gateway</CardTitle>
+          <CardDescription>Vale para qualquer gateway cadastrada aqui.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1 text-sm text-muted-foreground">
+          <p>1. Copie o endereço de webhook exibido no cartão da gateway abaixo.</p>
+          <p>
+            2. No painel da gateway, cole esse endereço no campo de webhook / postback / callback,
+            com método <span className="font-medium text-foreground">POST</span>.
+          </p>
+          <p>3. Salve e faça um pagamento de teste.</p>
+          <p>
+            4. Confira em <span className="font-medium text-foreground">Logs → Webhooks recebidos</span>{" "}
+            se a chamada chegou, e em{" "}
+            <span className="font-medium text-foreground">Pagamentos recebidos</span> quem pagou.
+          </p>
+        </CardContent>
+      </Card>
+
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : (
         <div className="grid gap-4">
           {lista.map((g) => {
             const webhook = g.webhook_url || `${origem}/api/public/webhooks/${g.slug}`;
+            const hooks = porGateway.get(g.slug);
             return (
               <Card key={g.id}>
                 <CardContent className="flex flex-wrap items-start justify-between gap-4 py-5">
@@ -346,6 +367,20 @@ function PaginaGateways() {
                         </>
                       )}
                     </p>
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {hooks?.ultimo_em ? (
+                        <>
+                          <CheckCircle2 className="size-3.5 text-emerald-600" />
+                          Último webhook em {new Date(hooks.ultimo_em).toLocaleString("pt-BR")} ·{" "}
+                          {hooks.total_24h} nas últimas 24h
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="size-3.5 text-amber-600" />
+                          Nenhum webhook recebido ainda desta gateway
+                        </>
+                      )}
+                    </p>
                     <p className="break-all text-xs text-muted-foreground">
                       Webhook: {webhook}
                       <button
@@ -360,6 +395,7 @@ function PaginaGateways() {
                       </button>
                     </p>
                   </div>
+
 
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
