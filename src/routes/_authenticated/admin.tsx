@@ -2,7 +2,7 @@ import { createFileRoute, isRedirect, Link, Outlet, redirect, useNavigate } from
 import { useQueryClient } from "@tanstack/react-query";
 import { BarChart3, FileText, LogOut, QrCode, Receipt, ScrollText, Shuffle } from "lucide-react";
 
-const logo = "https://www.claro.com.br/files/104379/x/4e0cdf35df/claro.svg?sq=75";
+import logo from "@/assets/logo-claro.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
