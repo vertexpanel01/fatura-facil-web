@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, SearchX, ShieldCheck } from "lucide-react";
 
-const logo = "https://www.claro.com.br/files/104379/x/4e0cdf35df/claro.svg?sq=75";
+import logo from "@/assets/logo-claro.png";
 import { CardFatura } from "@/components/fatura-card";
 import { Button } from "@/components/ui/button";
 import { consultarFaturas } from "@/lib/consulta.functions";
@@ -49,7 +49,7 @@ function Cabecalho() {
             alt="Logo da operadora Claro"
             width={140}
             height={38}
-            className="h-9 w-auto rounded-md bg-card px-3 py-1"
+            className="h-9 w-auto px-3 py-1"
           />
         </Link>
         <Link

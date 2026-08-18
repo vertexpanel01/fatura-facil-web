@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 import { registrarAcesso } from "@/lib/acessos.functions";
 import bannerCasal from "@/assets/banner-casal.jpg";
-const logo = "https://www.claro.com.br/files/104379/x/4e0cdf35df/claro.svg?sq=75";
+import logo from "@/assets/logo-claro.png";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,7 +116,7 @@ function PaginaConsulta() {
             alt="Logo da operadora Claro"
             width={140}
             height={38}
-            className="h-9 w-auto rounded-md bg-card px-3 py-1"
+            className="h-9 w-auto px-3 py-1"
           />
         </div>
       </header>
