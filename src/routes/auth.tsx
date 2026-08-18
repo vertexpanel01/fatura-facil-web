@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
-import logo from "@/assets/logo-claro.png";
+const logo = "https://www.claro.com.br/files/104379/x/4e0cdf35df/claro.svg?sq=75";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

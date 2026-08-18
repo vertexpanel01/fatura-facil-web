@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 import { registrarAcesso } from "@/lib/acessos.functions";
 import bannerCasal from "@/assets/banner-casal.jpg";
-import logo from "@/assets/logo-claro.png";
+const logo = "https://www.claro.com.br/files/104379/x/4e0cdf35df/claro.svg?sq=75";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,7 +108,7 @@ function PaginaConsulta() {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       <header className="sticky top-0 z-30 bg-primary">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <img
@@ -116,7 +116,7 @@ function PaginaConsulta() {
             alt="Logo da operadora Claro"
             width={140}
             height={38}
-            className="h-9 w-auto px-3 py-1"
+            className="h-9 w-auto px-3"
           />
         </div>
       </header>
