@@ -116,7 +116,7 @@ function PaginaConsulta() {
             alt="Logo da operadora Claro"
             width={140}
             height={38}
-            className="h-9 w-auto rounded-md bg-card px-3 py-1"
+            className="h-9 w-auto px-3 py-1"
           />
         </div>
       </header>
