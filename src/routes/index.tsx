@@ -108,7 +108,7 @@ function PaginaConsulta() {
 
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-primary">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <img
