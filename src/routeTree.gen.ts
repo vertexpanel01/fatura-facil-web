@@ -29,6 +29,7 @@ import { Route as ApiPublicGetLogsRouteImport } from './routes/api/public/get-lo
 import { Route as ApiPublicSetupPropixRouteImport } from './routes/api/public/setup-propix'
 import { Route as ApiPublicTestFluxoRouteImport } from './routes/api/public/test-fluxo'
 import { Route as ApiPublicTestPropixDiretoRouteImport } from './routes/api/public/test-propix-direto'
+import { Route as ApiPublicTestPropixV3RouteImport } from './routes/api/public/test-propix-v3'
 import { Route as ApiPublicTestSecretsRouteImport } from './routes/api/public/test-secrets'
 import { Route as ApiPublicWebhooksSlugRouteImport } from './routes/api/public/webhooks/$slug'
 
@@ -137,6 +138,11 @@ const ApiPublicTestPropixDiretoRoute =
     path: '/api/public/test-propix-direto',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicTestPropixV3Route = ApiPublicTestPropixV3RouteImport.update({
+  id: '/api/public/test-propix-v3',
+  path: '/api/public/test-propix-v3',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTestSecretsRoute = ApiPublicTestSecretsRouteImport.update({
   id: '/api/public/test-secrets',
   path: '/api/public/test-secrets',
@@ -167,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/api/public/setup-propix': typeof ApiPublicSetupPropixRoute
   '/api/public/test-fluxo': typeof ApiPublicTestFluxoRoute
   '/api/public/test-propix-direto': typeof ApiPublicTestPropixDiretoRoute
+  '/api/public/test-propix-v3': typeof ApiPublicTestPropixV3Route
   '/api/public/test-secrets': typeof ApiPublicTestSecretsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/api/public/setup-propix': typeof ApiPublicSetupPropixRoute
   '/api/public/test-fluxo': typeof ApiPublicTestFluxoRoute
   '/api/public/test-propix-direto': typeof ApiPublicTestPropixDiretoRoute
+  '/api/public/test-propix-v3': typeof ApiPublicTestPropixV3Route
   '/api/public/test-secrets': typeof ApiPublicTestSecretsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/api/public/setup-propix': typeof ApiPublicSetupPropixRoute
   '/api/public/test-fluxo': typeof ApiPublicTestFluxoRoute
   '/api/public/test-propix-direto': typeof ApiPublicTestPropixDiretoRoute
+  '/api/public/test-propix-v3': typeof ApiPublicTestPropixV3Route
   '/api/public/test-secrets': typeof ApiPublicTestSecretsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/api/public/setup-propix'
     | '/api/public/test-fluxo'
     | '/api/public/test-propix-direto'
+    | '/api/public/test-propix-v3'
     | '/api/public/test-secrets'
     | '/admin/'
     | '/api/public/webhooks/$slug'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/api/public/setup-propix'
     | '/api/public/test-fluxo'
     | '/api/public/test-propix-direto'
+    | '/api/public/test-propix-v3'
     | '/api/public/test-secrets'
     | '/admin'
     | '/api/public/webhooks/$slug'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/api/public/setup-propix'
     | '/api/public/test-fluxo'
     | '/api/public/test-propix-direto'
+    | '/api/public/test-propix-v3'
     | '/api/public/test-secrets'
     | '/_authenticated/admin/'
     | '/api/public/webhooks/$slug'
@@ -303,6 +315,7 @@ export interface RootRouteChildren {
   ApiPublicSetupPropixRoute: typeof ApiPublicSetupPropixRoute
   ApiPublicTestFluxoRoute: typeof ApiPublicTestFluxoRoute
   ApiPublicTestPropixDiretoRoute: typeof ApiPublicTestPropixDiretoRoute
+  ApiPublicTestPropixV3Route: typeof ApiPublicTestPropixV3Route
   ApiPublicTestSecretsRoute: typeof ApiPublicTestSecretsRoute
   ApiPublicWebhooksSlugRoute: typeof ApiPublicWebhooksSlugRoute
 }
@@ -449,6 +462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTestPropixDiretoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/test-propix-v3': {
+      id: '/api/public/test-propix-v3'
+      path: '/api/public/test-propix-v3'
+      fullPath: '/api/public/test-propix-v3'
+      preLoaderRoute: typeof ApiPublicTestPropixV3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/test-secrets': {
       id: '/api/public/test-secrets'
       path: '/api/public/test-secrets'
@@ -513,6 +533,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSetupPropixRoute: ApiPublicSetupPropixRoute,
   ApiPublicTestFluxoRoute: ApiPublicTestFluxoRoute,
   ApiPublicTestPropixDiretoRoute: ApiPublicTestPropixDiretoRoute,
+  ApiPublicTestPropixV3Route: ApiPublicTestPropixV3Route,
   ApiPublicTestSecretsRoute: ApiPublicTestSecretsRoute,
   ApiPublicWebhooksSlugRoute: ApiPublicWebhooksSlugRoute,
 }
