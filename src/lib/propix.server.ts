@@ -57,13 +57,14 @@ export async function criarCobrancaPix(entrada: {
   await log(`Iniciando criarCobrancaPix para ${entrada.referencia}`);
 
   const reais = Number((entrada.centavos / 100).toFixed(2));
+  // A ProPix pode exigir CPFs válidos; limpamos a formatação.
   const cpf = (entrada.documento ?? "").replace(/\D/g, "");
 
   const corpo = {
     amount: reais,
-    description: entrada.descricao || `Pagamento #${entrada.referencia}`,
-    payerName: entrada.nome || "Cliente",
-    payerDocument: cpf,
+    description: (entrada.descricao || `Pagamento #${entrada.referencia}`).slice(0, 50),
+    payerName: (entrada.nome || "Cliente").slice(0, 50),
+    payerDocument: cpf || "00000000000",
   };
 
   try {
@@ -77,9 +78,13 @@ export async function criarCobrancaPix(entrada: {
     const bruto = await resposta.text();
     await log(`Status: ${resposta.status}, Resposta: ${bruto}`, resposta.status);
 
+    if (!resposta.ok) {
+       return null;
+    }
+
     const json = JSON.parse(bruto);
 
-    if (!resposta.ok || !json.success) {
+    if (!json.success) {
       return null;
     }
 
@@ -90,7 +95,7 @@ export async function criarCobrancaPix(entrada: {
     }
 
     return {
-      id: json.transactionId,
+      id: String(json.transactionId),
       copia_cola: json.copyPaste,
       qrcode: qrcode,
       status: json.status || "PENDENTE",
@@ -134,3 +139,4 @@ export function pagoNoGateway(status: string | null | undefined): boolean {
   const s = status.toUpperCase();
   return ["COMPLETO", "APROVADO", "PAID", "SUCCESS"].includes(s);
 }
+
