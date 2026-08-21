@@ -3,6 +3,7 @@
  * Autenticação: apenas a Secret Key (CASHINPAY_SECRET_KEY), via Bearer.
  * Os valores trafegam SEMPRE em centavos e SEMPRE com o valor com desconto.
  */
+import { registrarLog } from "./payment-router.server";
 
 const BASE = "https://api.cashinpaybr.com/api/v1";
 
@@ -198,6 +199,15 @@ export async function criarCobrancaPix(entrada: {
     );
 
     const codigoErro = json?.error?.message ?? "";
+    
+    // Log detalhado no banco para depuração remota pelo usuário
+    await registrarLog({
+      gateway_slug: "cashinpay",
+      fatura_id: entrada.referencia,
+      http_status: resposta.status,
+      mensagem: `Erro na resposta: ${bruto.slice(0, 450)}`,
+    }).catch(() => {});
+
     const transacaoDuplicada =
       resposta.status === 409 ||
       codigoErro.toLowerCase().includes("transacao ja existe") ||
