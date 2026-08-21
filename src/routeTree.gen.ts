@@ -25,6 +25,7 @@ import { Route as AuthenticatedAdminPagamentosRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminTransacoesRouteImport } from './routes/_authenticated/admin.transacoes'
 import { Route as ApiPublicCobrancaRouteImport } from './routes/api/public/cobranca'
 import { Route as ApiPublicFaturasRouteImport } from './routes/api/public/faturas'
+import { Route as ApiPublicSetupPropixRouteImport } from './routes/api/public/setup-propix'
 import { Route as ApiPublicWebhooksSlugRouteImport } from './routes/api/public/webhooks/$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -111,6 +112,11 @@ const ApiPublicFaturasRoute = ApiPublicFaturasRouteImport.update({
   path: '/api/public/faturas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSetupPropixRoute = ApiPublicSetupPropixRouteImport.update({
+  id: '/api/public/setup-propix',
+  path: '/api/public/setup-propix',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWebhooksSlugRoute = ApiPublicWebhooksSlugRouteImport.update({
   id: '/api/public/webhooks/$slug',
   path: '/api/public/webhooks/$slug',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
+  '/api/public/setup-propix': typeof ApiPublicSetupPropixRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
 }
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
+  '/api/public/setup-propix': typeof ApiPublicSetupPropixRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
 }
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
+  '/api/public/setup-propix': typeof ApiPublicSetupPropixRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/webhooks/$slug': typeof ApiPublicWebhooksSlugRoute
 }
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/admin/transacoes'
     | '/api/public/cobranca'
     | '/api/public/faturas'
+    | '/api/public/setup-propix'
     | '/admin/'
     | '/api/public/webhooks/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/admin/transacoes'
     | '/api/public/cobranca'
     | '/api/public/faturas'
+    | '/api/public/setup-propix'
     | '/admin'
     | '/api/public/webhooks/$slug'
   id:
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/transacoes'
     | '/api/public/cobranca'
     | '/api/public/faturas'
+    | '/api/public/setup-propix'
     | '/_authenticated/admin/'
     | '/api/public/webhooks/$slug'
   fileRoutesById: FileRoutesById
@@ -238,6 +250,7 @@ export interface RootRouteChildren {
   FaturaTelefoneRoute: typeof FaturaTelefoneRoute
   ApiPublicCobrancaRoute: typeof ApiPublicCobrancaRoute
   ApiPublicFaturasRoute: typeof ApiPublicFaturasRoute
+  ApiPublicSetupPropixRoute: typeof ApiPublicSetupPropixRoute
   ApiPublicWebhooksSlugRoute: typeof ApiPublicWebhooksSlugRoute
 }
 
@@ -355,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFaturasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/setup-propix': {
+      id: '/api/public/setup-propix'
+      path: '/api/public/setup-propix'
+      fullPath: '/api/public/setup-propix'
+      preLoaderRoute: typeof ApiPublicSetupPropixRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/$slug': {
       id: '/api/public/webhooks/$slug'
       path: '/api/public/webhooks/$slug'
@@ -408,6 +428,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaturaTelefoneRoute: FaturaTelefoneRoute,
   ApiPublicCobrancaRoute: ApiPublicCobrancaRoute,
   ApiPublicFaturasRoute: ApiPublicFaturasRoute,
+  ApiPublicSetupPropixRoute: ApiPublicSetupPropixRoute,
   ApiPublicWebhooksSlugRoute: ApiPublicWebhooksSlugRoute,
 }
 export const routeTree = rootRouteImport
