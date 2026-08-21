@@ -37,9 +37,9 @@ export async function criarCobrancaPix(entrada: {
   centavos: number;
   nome: string;
   telefone: string;
-  documento?: string | null;
+  documento?: string | null | undefined;
   descricao: string;
-  referencia?: string | null;
+  referencia?: string | null | undefined;
 }): Promise<CobrancaPix | null> {
   const reais = Number((entrada.centavos / 100).toFixed(2));
   const cpf = (entrada.documento ?? "").replace(/\D/g, "");
