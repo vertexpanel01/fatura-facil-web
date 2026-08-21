@@ -188,7 +188,8 @@ export async function criarCobrancaPix(entrada: {
     console.error(
       "[cashinpay] falha ao criar cobrança",
       resposta.status,
-      bruto.slice(0, 300),
+      "Corpo enviado:", JSON.stringify(corpo),
+      "Resposta bruta:", bruto.slice(0, 1000),
     );
     const codigoErro = json?.error?.message ?? "";
     const transacaoDuplicada =
