@@ -156,18 +156,23 @@ export async function criarCobrancaPix(entrada: {
   for (let tentativa = 0; tentativa < 4; tentativa++) {
     let resposta: Response;
     try {
+      console.log(`[cashinpay] tentativa ${tentativa + 1} para valor ${corpo.amount}`);
       resposta = await fetch(`${BASE}/transactions`, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify(corpo),
       });
-    } catch {
+    } catch (e) {
+      console.error("[cashinpay] erro de rede/fetch:", e);
       await new Promise((r) => setTimeout(r, 400 * (tentativa + 1)));
       continue;
     }
 
     ultimoStatus = resposta.status;
     bruto = await resposta.text().catch(() => "");
+    
+    console.log(`[cashinpay] status: ${ultimoStatus}, resposta: ${bruto.slice(0, 500)}`);
+
     json = (() => {
       try {
         return JSON.parse(bruto) as {
@@ -180,7 +185,7 @@ export async function criarCobrancaPix(entrada: {
       }
     })();
 
-    if (resposta.ok && json && !json.error) {
+    if (resposta.ok && json && (json.success || !json.error)) {
       respostaValida = true;
       break;
     }
@@ -191,15 +196,13 @@ export async function criarCobrancaPix(entrada: {
       "Corpo enviado:", JSON.stringify(corpo),
       "Resposta bruta:", bruto.slice(0, 1000),
     );
+
     const codigoErro = json?.error?.message ?? "";
     const transacaoDuplicada =
       resposta.status === 409 ||
       codigoErro.toLowerCase().includes("transacao ja existe") ||
       bruto.toLowerCase().includes("duplicate_transaction_id");
-    json = null;
-    // Uma tentativa anterior pode ter sido criada mesmo quando o gateway
-    // respondeu 502. Nesse caso, tenta novamente com o sufixo seguinte.
-    // Outros 4xx são erros de validação e não devem ser repetidos.
+    
     if (resposta.status >= 400 && resposta.status < 500 && !transacaoDuplicada) {
       return null;
     }
