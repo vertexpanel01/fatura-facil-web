@@ -9,6 +9,7 @@ function credenciais() {
   const clientId = process.env["PROPIX_CLIENT_ID"];
   const clientSecret = process.env["PROPIX_CLIENT_SECRET"];
   if (!clientId || !clientSecret) {
+    console.error("[propix] Erro de configuração. PROPIX_CLIENT_ID:", !!clientId, "PROPIX_CLIENT_SECRET:", !!clientSecret);
     throw new Error("Credenciais ProPix (CLIENT_ID/SECRET) não configuradas.");
   }
   return { clientId, clientSecret };
@@ -40,19 +41,34 @@ export async function criarCobrancaPix(entrada: {
   documento?: string | null | undefined;
   descricao: string;
   referencia?: string | null | undefined;
+  gateway?: any;
 }): Promise<CobrancaPix | null> {
+  const log = async (msg: string, status?: number) => {
+    console.log(`[propix-debug] ${msg}`);
+    await registrarLog({
+      gateway_slug: "propix",
+      fatura_id: entrada.referencia ?? null,
+      nivel: status && status >= 400 ? "erro" : "info",
+      http_status: status ?? null,
+      mensagem: msg.slice(0, 500),
+    }).catch(() => {});
+  };
+
+  await log(`Iniciando criarCobrancaPix para ${entrada.referencia}`);
+
   const reais = Number((entrada.centavos / 100).toFixed(2));
+  // A ProPix pode exigir CPFs válidos; limpamos a formatação.
   const cpf = (entrada.documento ?? "").replace(/\D/g, "");
 
   const corpo = {
     amount: reais,
-    description: entrada.descricao || `Pagamento #${entrada.referencia}`,
-    payerName: entrada.nome || "Cliente",
-    payerDocument: cpf,
+    description: (entrada.descricao || `Pagamento #${entrada.referencia}`).slice(0, 50),
+    payerName: (entrada.nome || "Cliente").slice(0, 50),
+    payerDocument: cpf || "00000000000",
   };
 
   try {
-    console.log(`[propix] criando depósito de R$ ${reais} para ${entrada.referencia}`);
+    await log(`Payload: ${JSON.stringify(corpo)}`);
     const resposta = await fetch(`${BASE}/deposit`, {
       method: "POST",
       headers: headers(),
@@ -60,18 +76,15 @@ export async function criarCobrancaPix(entrada: {
     });
 
     const bruto = await resposta.text();
-    console.log(`[propix] status: ${resposta.status}, resposta: ${bruto.slice(0, 500)}`);
+    await log(`Status: ${resposta.status}, Resposta: ${bruto}`, resposta.status);
+
+    if (!resposta.ok) {
+       return null;
+    }
 
     const json = JSON.parse(bruto);
 
-    if (!resposta.ok || !json.success) {
-      console.error("[propix] erro ao criar cobrança:", bruto);
-      await registrarLog({
-        gateway_slug: "propix",
-        fatura_id: entrada.referencia ?? null,
-        http_status: resposta.status,
-        mensagem: `Erro ProPix: ${bruto.slice(0, 450)}`,
-      }).catch(() => {});
+    if (!json.success) {
       return null;
     }
 
@@ -82,13 +95,14 @@ export async function criarCobrancaPix(entrada: {
     }
 
     return {
-      id: json.transactionId,
+      id: String(json.transactionId),
       copia_cola: json.copyPaste,
       qrcode: qrcode,
       status: json.status || "PENDENTE",
     };
   } catch (e) {
     console.error("[propix] erro de rede/processamento:", e);
+    await log(`Erro fatal: ${e instanceof Error ? e.message : String(e)}`, 500);
     return null;
   }
 }
@@ -125,3 +139,4 @@ export function pagoNoGateway(status: string | null | undefined): boolean {
   const s = status.toUpperCase();
   return ["COMPLETO", "APROVADO", "PAID", "SUCCESS"].includes(s);
 }
+
