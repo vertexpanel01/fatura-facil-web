@@ -23,6 +23,7 @@ function headers() {
 export type CobrancaPix = {
   id: string;
   copia_cola: string;
+  qrcode: string | null;
   status: string;
 };
 
@@ -108,6 +109,7 @@ async function recuperarCobranca(id: string): Promise<CobrancaPix | null> {
     return {
       id: primeiroCampo(dados, ["id", "transactionId", "transaction_id"]) ?? id,
       copia_cola: copiaCola,
+      qrcode: primeiroCampo(dados, ["qrcode", "qrCode", "qr_code", "pix_qrcode"]),
       status: String((dados as { status?: unknown }).status ?? "pending"),
     };
   } catch {
@@ -130,12 +132,12 @@ export async function criarCobrancaPix(entrada: {
   webhookUrl?: string | null;
 }): Promise<CobrancaPix | null> {
   const centavos = Math.max(1, Math.trunc(entrada.centavos));
+  const reais = Number((centavos / 100).toFixed(2));
 
-
-  const reais = Math.round(centavos) / 100;
   const corpo: Record<string, unknown> = {
     amount: reais,
-    description: entrada.descricao,
+    transaction_id: entrada.referencia || `TX${Date.now()}`,
+    description: entrada.descricao || "Fatura",
     customer: {
       name: entrada.nome || "Cliente",
       email: entrada.email || "cliente@clarofatura.app",
@@ -227,7 +229,9 @@ export async function criarCobrancaPix(entrada: {
 
 
   const dados = (json.data ?? json) as Record<string, unknown>;
-  const copiaCola = primeiroCampo(dados, [
+  const pix = (dados.pix ?? {}) as Record<string, unknown>;
+
+  const copiaCola = (pix.copy_paste as string) || (pix.qrcode as string) || primeiroCampo(dados, [
     "copy_paste",
     "qrcode",
     "qrCode",
@@ -237,13 +241,16 @@ export async function criarCobrancaPix(entrada: {
     "payload",
     "brcode",
   ]);
+
   const id = primeiroCampo(dados, ["id", "transactionId", "transaction_id"]);
+  const qrcode = (pix.qrcode as string) || primeiroCampo(dados, ["qrcode", "qrCode", "qr_code"]);
 
   if (!copiaCola) return null;
 
   return {
     id: id ?? "",
     copia_cola: copiaCola,
+    qrcode: qrcode,
     status: String((dados as { status?: unknown }).status ?? "pending"),
   };
 }
