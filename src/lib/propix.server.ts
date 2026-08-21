@@ -58,9 +58,18 @@ export async function criarCobrancaPix(entrada: {
       headers: headers(),
       body: JSON.stringify(corpo),
     });
-
+    
     const bruto = await resposta.text();
-    console.log(`[propix] status: ${resposta.status}, resposta: ${bruto.slice(0, 500)}`);
+    console.log(`[propix] status: ${resposta.status}, resposta bruta:`, bruto);
+    
+    await registrarLog({
+      gateway_slug: "propix",
+      fatura_id: entrada.referencia ?? null,
+      nivel: "info",
+      http_status: resposta.status,
+      mensagem: `DEBUG ProPix Resposta: ${bruto.slice(0, 450)}`,
+    }).catch(() => {});
+
 
     const json = JSON.parse(bruto);
 
