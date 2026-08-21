@@ -1,21 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const testProPixServer = createServerFn({ method: "POST" })
   .handler(async () => {
     const clientId = process.env["PROPIX_CLIENT_ID"];
     const clientSecret = process.env["PROPIX_CLIENT_SECRET"];
     
-    const logs: string[] = [];
-    logs.push(`Config: ID=${!!clientId}, Secret=${!!clientSecret}`);
-    
     try {
-      // Teste com um CPF válido e campos alternativos (nome do pagador conforme documentação)
+      // Tentativa minimalista
       const payload = {
-        amount: 1.00,
-        description: "Diagnóstico",
-        payerName: "Cliente Teste",
-        payerDocument: "34934162000" // CPF de teste válido
+        amount: 10, // R$ 10.00
+        description: "Teste",
+        payerName: "Teste",
+        payerDocument: "34934162000"
       };
 
       const res = await fetch("https://api.propixbr.com/api/v1/deposit", {
@@ -29,13 +25,28 @@ export const testProPixServer = createServerFn({ method: "POST" })
       });
 
       const body = await res.text();
+      
+      // Se 500 continuar, tenta GET para ver se a API está viva ou se o endpoint é diferente
+      let check = null;
+      if (res.status === 500) {
+         const res2 = await fetch("https://api.propixbr.com/api/v1/check", {
+           method: "POST",
+           headers: {
+             "Content-Type": "application/json",
+             "x-client-id": clientId || "",
+             "x-client-secret": clientSecret || ""
+           },
+           body: JSON.stringify({ transactionId: "123" })
+         });
+         check = await res2.text();
+      }
+
       return { 
-        success: res.ok, 
         status: res.status, 
         body,
-        logs 
+        check
       };
     } catch (e: any) {
-      return { success: false, error: e.message, logs };
+      return { error: e.message };
     }
   });
