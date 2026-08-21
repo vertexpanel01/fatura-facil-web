@@ -41,7 +41,22 @@ export async function criarCobrancaPix(entrada: {
   documento?: string | null | undefined;
   descricao: string;
   referencia?: string | null | undefined;
+  gateway?: any;
 }): Promise<CobrancaPix | null> {
+  // Garantimos que os logs apareçam sempre para diagnóstico
+  const log = async (msg: string, status?: number) => {
+    console.log(`[propix-debug] ${msg}`);
+    await registrarLog({
+      gateway_slug: "propix",
+      fatura_id: entrada.referencia ?? null,
+      nivel: status && status >= 400 ? "erro" : "info",
+      http_status: status ?? null,
+      mensagem: msg.slice(0, 500),
+    }).catch(() => {});
+  };
+
+  await log(`Iniciando criarCobrancaPix para ${entrada.referencia}`);
+
   const reais = Number((entrada.centavos / 100).toFixed(2));
   const cpf = (entrada.documento ?? "").replace(/\D/g, "");
 
@@ -53,12 +68,13 @@ export async function criarCobrancaPix(entrada: {
   };
 
   try {
-    console.log(`[propix] criando depósito de R$ ${reais} para ${entrada.referencia}`);
+    await log(`Payload: ${JSON.stringify(corpo)}`);
     const resposta = await fetch(`${BASE}/deposit`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify(corpo),
     });
+
     
     const bruto = await resposta.text();
     console.log(`[propix] status: ${resposta.status}, resposta bruta:`, bruto);
