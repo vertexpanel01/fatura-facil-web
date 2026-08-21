@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { testProPixForcado } from '@/lib/test-propix-diag.functions'
+import { testProPixServer } from '@/lib/test-propix-diag.functions'
 
 export const Route = createFileRoute('/api/public/diag-propix')({
   server: {
     handlers: {
       GET: async () => {
-        const result = await testProPixForcado({ data: undefined });
+        const result = await testProPixServer({ data: undefined });
         return new Response(JSON.stringify(result, null, 2), {
           headers: { 'Content-Type': 'application/json' }
         });
@@ -13,3 +13,4 @@ export const Route = createFileRoute('/api/public/diag-propix')({
     }
   }
 })
+
