@@ -246,8 +246,55 @@ const generico: GatewayAdapter = {
   },
 };
 
+const propix: GatewayAdapter = {
+  nome: "propix",
+  configurado: () => Boolean(process.env["PROPIX_CLIENT_ID"] && process.env["PROPIX_CLIENT_SECRET"]),
+  async criarPix(e: CriarPixEntrada): Promise<PixCriado> {
+    const { criarCobrancaPix } = await import("@/lib/propix.server");
+    const c = await criarCobrancaPix({
+      centavos: e.centavos,
+      nome: e.nome,
+      telefone: e.telefone,
+      documento: e.documento,
+      descricao: e.descricao,
+      referencia: e.referencia,
+    });
+    if (!c) throw new Error("ProPix não retornou a cobrança.");
+    return { transacaoId: c.id, copiaCola: c.copia_cola, qrcode: c.qrcode, status: c.status };
+  },
+  async consultarStatus(id) {
+    const { consultarTransacao } = await import("@/lib/propix.server");
+    return consultarTransacao(id);
+  },
+  pago: (s) => ["COMPLETO", "APROVADO", "PAID", "SUCCESS"].includes((s ?? "").toString().toUpperCase()),
+  async lerWebhook(request, corpoBruto): Promise<WebhookLido> {
+    let corpo: any = null;
+    try {
+      corpo = JSON.parse(corpoBruto);
+    } catch {
+      return { valido: false, transacaoId: null, status: null, evento: null };
+    }
+
+    // ProPix não tem assinatura documentada. 
+    // A segurança é feita via double-check no statusNaGateway do $slug.ts
+    // que chama o consultarStatus acima.
+    
+    const transacaoId = corpo.transactionId || (corpo.transaction && corpo.transaction.transactionId);
+    const status = corpo.status || (corpo.transaction && corpo.transaction.transactionState);
+    const evento = corpo.event || (status === "COMPLETO" ? "DEPOSITO_COMPLETO" : null);
+
+    return {
+      valido: true, // Confiamos inicialmente, mas o router fará o double-check
+      transacaoId: transacaoId ? String(transacaoId) : null,
+      status: status ? String(status) : null,
+      evento: evento ? String(evento) : null,
+    };
+  },
+};
+
 const REGISTRO: Record<string, GatewayAdapter> = {
   cashinpay,
+  propix,
   "pix-estatico": pixEstatico,
   generico,
 };
