@@ -2,6 +2,7 @@
  * Registro de adaptadores de gateway.
  * Cada adaptador implementa o contrato `GatewayAdapter` (types.ts).
  */
+import { createHmac, timingSafeEqual } from "crypto";
 import type {
   CriarPixEntrada,
   GatewayAdapter,
@@ -80,24 +81,42 @@ const cashinpay: GatewayAdapter = {
       webhookUrl: e.webhookUrl,
     });
     if (!c) throw new Error("CashinPay não retornou a cobrança.");
-    return { transacaoId: c.id, copiaCola: c.copia_cola, status: c.status };
+    return { transacaoId: c.id, copiaCola: c.copia_cola, qrcode: c.qrcode, status: c.status };
   },
   async consultarStatus(id) {
     const { consultarTransacao } = await import("@/lib/cashinpay.server");
     return consultarTransacao(id);
   },
   pago: statusPago,
-  async lerWebhook(_request, corpoBruto): Promise<WebhookLido> {
-    let corpo: unknown = null;
+  async lerWebhook(request, corpoBruto): Promise<WebhookLido> {
+    let corpo: any = null;
     try {
       corpo = JSON.parse(corpoBruto);
     } catch {
       return { valido: false, transacaoId: null, status: null, evento: null };
     }
+
+    const signature = request.headers.get("X-CashinPay-Signature");
+    const secret = process.env["CASHINPAY_WEBHOOK_SECRET"];
+    let valido = true;
+
+    if (secret && signature) {
+      try {
+        const hmac = createHmac("sha256", secret);
+        const expected = hmac.update(corpoBruto).digest("hex");
+        valido = timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+      } catch (e) {
+        console.error("[cashinpay] erro ao validar assinatura:", e);
+        valido = false;
+      }
+    }
+
+    // Estrutura esperada: { "event": "transaction.paid", "data": { "id": "...", "status": "paid", ... } }
+    const dados = corpo.data ?? corpo;
     return {
-      valido: true,
-      transacaoId: busca(corpo, ["transaction_id", "transactionId", "external_id", "id"]),
-      status: busca(corpo, ["status", "payment_status"]),
+      valido,
+      transacaoId: busca(dados, ["id", "transaction_id", "transactionId", "external_id"]),
+      status: busca(dados, ["status", "payment_status"]),
       evento: busca(corpo, ["event", "type"]),
     };
   },
