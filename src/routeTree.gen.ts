@@ -24,6 +24,7 @@ import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminPagamentosRouteImport } from './routes/_authenticated/admin.pagamentos'
 import { Route as AuthenticatedAdminTransacoesRouteImport } from './routes/_authenticated/admin.transacoes'
 import { Route as ApiPublicCobrancaRouteImport } from './routes/api/public/cobranca'
+import { Route as ApiPublicDiagPropixRouteImport } from './routes/api/public/diag-propix'
 import { Route as ApiPublicFaturasRouteImport } from './routes/api/public/faturas'
 import { Route as ApiPublicGetLogsRouteImport } from './routes/api/public/get-logs'
 import { Route as ApiPublicSetupPropixRouteImport } from './routes/api/public/setup-propix'
@@ -112,6 +113,11 @@ const ApiPublicCobrancaRoute = ApiPublicCobrancaRouteImport.update({
   path: '/api/public/cobranca',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDiagPropixRoute = ApiPublicDiagPropixRouteImport.update({
+  id: '/api/public/diag-propix',
+  path: '/api/public/diag-propix',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicFaturasRoute = ApiPublicFaturasRouteImport.update({
   id: '/api/public/faturas',
   path: '/api/public/faturas',
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
   '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
+  '/api/public/diag-propix': typeof ApiPublicDiagPropixRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/get-logs': typeof ApiPublicGetLogsRoute
   '/api/public/setup-propix': typeof ApiPublicSetupPropixRoute
@@ -191,6 +198,7 @@ export interface FileRoutesByTo {
   '/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
   '/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
+  '/api/public/diag-propix': typeof ApiPublicDiagPropixRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/get-logs': typeof ApiPublicGetLogsRoute
   '/api/public/setup-propix': typeof ApiPublicSetupPropixRoute
@@ -217,6 +225,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/pagamentos': typeof AuthenticatedAdminPagamentosRoute
   '/_authenticated/admin/transacoes': typeof AuthenticatedAdminTransacoesRoute
   '/api/public/cobranca': typeof ApiPublicCobrancaRoute
+  '/api/public/diag-propix': typeof ApiPublicDiagPropixRoute
   '/api/public/faturas': typeof ApiPublicFaturasRoute
   '/api/public/get-logs': typeof ApiPublicGetLogsRoute
   '/api/public/setup-propix': typeof ApiPublicSetupPropixRoute
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
     | '/admin/pagamentos'
     | '/admin/transacoes'
     | '/api/public/cobranca'
+    | '/api/public/diag-propix'
     | '/api/public/faturas'
     | '/api/public/get-logs'
     | '/api/public/setup-propix'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/admin/pagamentos'
     | '/admin/transacoes'
     | '/api/public/cobranca'
+    | '/api/public/diag-propix'
     | '/api/public/faturas'
     | '/api/public/get-logs'
     | '/api/public/setup-propix'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/pagamentos'
     | '/_authenticated/admin/transacoes'
     | '/api/public/cobranca'
+    | '/api/public/diag-propix'
     | '/api/public/faturas'
     | '/api/public/get-logs'
     | '/api/public/setup-propix'
@@ -310,6 +322,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   FaturaTelefoneRoute: typeof FaturaTelefoneRoute
   ApiPublicCobrancaRoute: typeof ApiPublicCobrancaRoute
+  ApiPublicDiagPropixRoute: typeof ApiPublicDiagPropixRoute
   ApiPublicFaturasRoute: typeof ApiPublicFaturasRoute
   ApiPublicGetLogsRoute: typeof ApiPublicGetLogsRoute
   ApiPublicSetupPropixRoute: typeof ApiPublicSetupPropixRoute
@@ -427,6 +440,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCobrancaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/diag-propix': {
+      id: '/api/public/diag-propix'
+      path: '/api/public/diag-propix'
+      fullPath: '/api/public/diag-propix'
+      preLoaderRoute: typeof ApiPublicDiagPropixRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/faturas': {
       id: '/api/public/faturas'
       path: '/api/public/faturas'
@@ -528,6 +548,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   FaturaTelefoneRoute: FaturaTelefoneRoute,
   ApiPublicCobrancaRoute: ApiPublicCobrancaRoute,
+  ApiPublicDiagPropixRoute: ApiPublicDiagPropixRoute,
   ApiPublicFaturasRoute: ApiPublicFaturasRoute,
   ApiPublicGetLogsRoute: ApiPublicGetLogsRoute,
   ApiPublicSetupPropixRoute: ApiPublicSetupPropixRoute,
