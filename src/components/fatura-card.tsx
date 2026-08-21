@@ -4,6 +4,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { AlertCircle, CheckCircle2, Copy, Loader2, QrCode, RefreshCw, ShieldCheck } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
+
+const logoBranca = "https://www.claro.com.br/files/104379/x/4e0cdf35df/claro.svg?sq=75";
 
 import { Button } from "@/components/ui/button";
 import { consultarStatusFatura, gerarPixFatura } from "@/lib/consulta.functions";
@@ -182,6 +185,19 @@ export function CardFatura({
 
   return (
     <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
+      <header className="bg-primary">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+          <Link to="/">
+            <img
+              src={logoBranca}
+              alt="Logo da operadora Claro"
+              width={140}
+              height={38}
+              className="h-9 w-auto px-3"
+            />
+          </Link>
+        </div>
+      </header>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border bg-secondary/60 px-5 py-4">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
