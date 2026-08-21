@@ -229,9 +229,9 @@ export async function criarCobrancaPix(entrada: {
 
 
   const dados = (json.data ?? json) as Record<string, unknown>;
-  const pix = (dados.pix ?? {}) as Record<string, unknown>;
+  const pix = (dados["pix"] ?? {}) as Record<string, unknown>;
 
-  const copiaCola = (pix.copy_paste as string) || (pix.qrcode as string) || primeiroCampo(dados, [
+  const copiaCola = (pix["copy_paste"] as string) || (pix["qrcode"] as string) || primeiroCampo(dados, [
     "copy_paste",
     "qrcode",
     "qrCode",
@@ -243,7 +243,7 @@ export async function criarCobrancaPix(entrada: {
   ]);
 
   const id = primeiroCampo(dados, ["id", "transactionId", "transaction_id"]);
-  const qrcode = (pix.qrcode as string) || primeiroCampo(dados, ["qrcode", "qrCode", "qr_code"]);
+  const qrcode = (pix["qrcode"] as string) || primeiroCampo(dados, ["qrcode", "qrCode", "qr_code"]);
 
   if (!copiaCola) return null;
 
