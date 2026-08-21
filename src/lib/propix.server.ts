@@ -9,6 +9,7 @@ function credenciais() {
   const clientId = process.env["PROPIX_CLIENT_ID"];
   const clientSecret = process.env["PROPIX_CLIENT_SECRET"];
   if (!clientId || !clientSecret) {
+    console.error("[propix] Erro de configuração. PROPIX_CLIENT_ID:", !!clientId, "PROPIX_CLIENT_SECRET:", !!clientSecret);
     throw new Error("Credenciais ProPix (CLIENT_ID/SECRET) não configuradas.");
   }
   return { clientId, clientSecret };
