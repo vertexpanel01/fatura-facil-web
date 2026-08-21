@@ -10,11 +10,12 @@ export const testProPixServer = createServerFn({ method: "POST" })
     logs.push(`Config: ID=${!!clientId}, Secret=${!!clientSecret}`);
     
     try {
+      // Teste com um CPF válido e campos alternativos (nome do pagador conforme documentação)
       const payload = {
         amount: 1.00,
-        description: "Teste Diagnóstico",
-        payerName: "Teste",
-        payerDocument: "12345678909"
+        description: "Diagnóstico",
+        payerName: "Cliente Teste",
+        payerDocument: "34934162000" // CPF de teste válido
       };
 
       const res = await fetch("https://api.propixbr.com/api/v1/deposit", {
