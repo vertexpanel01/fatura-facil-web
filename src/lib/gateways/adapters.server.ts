@@ -122,46 +122,6 @@ const cashinpay: GatewayAdapter = {
   },
 };
 
-// --------------------------------------------------------------- AfiliaxPay
-const afiliaxpay: GatewayAdapter = {
-  nome: "afiliaxpay",
-  configurado: () =>
-    Boolean(process.env["AFILIAXPAY_TOKEN"] && process.env["AFILIAXPAY_SECRET"]),
-  async criarPix(e: CriarPixEntrada): Promise<PixCriado> {
-    const { criarCobrancaPix } = await import("@/lib/afiliaxpay.server");
-    const c = await criarCobrancaPix({
-      centavos: e.centavos,
-      nome: e.nome,
-      telefone: e.telefone,
-      email: e.email ?? null,
-      documento: e.documento ?? null,
-      descricao: e.descricao,
-      referencia: e.referencia,
-      webhookUrl: e.webhookUrl,
-    });
-    if (!c) throw new Error("AfiliaxPay não retornou a cobrança.");
-    return { transacaoId: c.id, copiaCola: c.copia_cola, status: c.status };
-  },
-  async consultarStatus(id) {
-    const { consultarStatus } = await import("@/lib/afiliaxpay.server");
-    return consultarStatus(id);
-  },
-  pago: statusPago,
-  async lerWebhook(_request, corpoBruto): Promise<WebhookLido> {
-    let corpo: unknown = null;
-    try {
-      corpo = JSON.parse(corpoBruto);
-    } catch {
-      return { valido: false, transacaoId: null, status: null, evento: null };
-    }
-    return {
-      valido: true,
-      transacaoId: busca(corpo, ["idTransaction", "transactionId", "transaction_id", "id"]),
-      status: busca(corpo, ["status"]),
-      evento: busca(corpo, ["event", "type"]),
-    };
-  },
-};
 
 // ------------------------------------------------------------- PIX estático
 const pixEstatico: GatewayAdapter = {
@@ -288,7 +248,6 @@ const generico: GatewayAdapter = {
 
 const REGISTRO: Record<string, GatewayAdapter> = {
   cashinpay,
-  afiliaxpay,
   "pix-estatico": pixEstatico,
   generico,
 };

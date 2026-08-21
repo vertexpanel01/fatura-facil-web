@@ -484,7 +484,7 @@ function PaginaGateways() {
                   <SelectContent>
                     <SelectItem value="generico">REST genérico</SelectItem>
                     <SelectItem value="cashinpay">CashinPay</SelectItem>
-                    <SelectItem value="afiliaxpay">AfiliaxPay</SelectItem>
+                    
                     <SelectItem value="pix-estatico">PIX estático</SelectItem>
                   </SelectContent>
                 </Select>
