@@ -37,8 +37,6 @@ function estaConfigurado(g: {
 }): boolean {
   const chave = g.adapter || g.slug;
   if (chave === "cashinpay") return Boolean(process.env["CASHINPAY_SECRET_KEY"]);
-  if (chave === "afiliaxpay")
-    return Boolean(process.env["AFILIAXPAY_TOKEN"] && process.env["AFILIAXPAY_SECRET"]);
   if (chave === "pix-estatico") return Boolean(process.env["PIX_CHAVE"]);
   const nomes = g.secret_names ?? [];
   return nomes.length > 0 && nomes.every((n) => Boolean(process.env[n]));
