@@ -177,3 +177,7 @@
 @utility shadow-elevated {
   box-shadow: var(--shadow-elevated);
 }
+
+#lovable-badge {
+  display: none !important;
+}
