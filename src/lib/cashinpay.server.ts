@@ -156,7 +156,7 @@ export async function criarCobrancaPix(entrada: {
   for (let tentativa = 0; tentativa < 4; tentativa++) {
     let resposta: Response;
     try {
-      console.log(`[cashinpay] tentativa ${tentativa + 1} para valor ${corpo.amount}`);
+      console.log(`[cashinpay] tentativa ${tentativa + 1} para valor ${corpo["amount"]}`);
       resposta = await fetch(`${BASE}/transactions`, {
         method: "POST",
         headers: headers(),
