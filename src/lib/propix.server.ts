@@ -43,7 +43,6 @@ export async function criarCobrancaPix(entrada: {
   referencia?: string | null | undefined;
   gateway?: any;
 }): Promise<CobrancaPix | null> {
-  // Garantimos que os logs apareçam sempre para diagnóstico
   const log = async (msg: string, status?: number) => {
     console.log(`[propix-debug] ${msg}`);
     await registrarLog({
@@ -75,29 +74,12 @@ export async function criarCobrancaPix(entrada: {
       body: JSON.stringify(corpo),
     });
 
-    
     const bruto = await resposta.text();
-    console.log(`[propix] status: ${resposta.status}, resposta bruta:`, bruto);
-    
-    await registrarLog({
-      gateway_slug: "propix",
-      fatura_id: entrada.referencia ?? null,
-      nivel: "info",
-      http_status: resposta.status,
-      mensagem: `DEBUG ProPix Resposta: ${bruto.slice(0, 450)}`,
-    }).catch(() => {});
-
+    await log(`Status: ${resposta.status}, Resposta: ${bruto}`, resposta.status);
 
     const json = JSON.parse(bruto);
 
     if (!resposta.ok || !json.success) {
-      console.error("[propix] erro ao criar cobrança:", bruto);
-      await registrarLog({
-        gateway_slug: "propix",
-        fatura_id: entrada.referencia ?? null,
-        http_status: resposta.status,
-        mensagem: `Erro ProPix: ${bruto.slice(0, 450)}`,
-      }).catch(() => {});
       return null;
     }
 
@@ -115,6 +97,7 @@ export async function criarCobrancaPix(entrada: {
     };
   } catch (e) {
     console.error("[propix] erro de rede/processamento:", e);
+    await log(`Erro fatal: ${e instanceof Error ? e.message : String(e)}`, 500);
     return null;
   }
 }
