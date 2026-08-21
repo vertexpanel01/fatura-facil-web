@@ -203,7 +203,7 @@ export async function criarCobrancaPix(entrada: {
     // Log detalhado no banco para depuração remota pelo usuário
     await registrarLog({
       gateway_slug: "cashinpay",
-      fatura_id: entrada.referencia,
+      fatura_id: entrada.referencia ?? null,
       http_status: resposta.status,
       mensagem: `Erro na resposta: ${bruto.slice(0, 450)}`,
     }).catch(() => {});
