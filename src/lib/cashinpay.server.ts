@@ -140,7 +140,7 @@ export async function criarCobrancaPix(entrada: {
     description: entrada.descricao || "Fatura",
     customer: {
       name: entrada.nome || "Cliente",
-      email: entrada.email || "cliente@clarofatura.app",
+      email: "cliente@ebookviver.app",
       phone: entrada.telefone.replace(/\D/g, "") || "11999999999",
       document: documento(entrada.documento, entrada.telefone),
     },

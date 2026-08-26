@@ -8,6 +8,7 @@
  *  - o copia-e-cola vem em `data.pix.emv` (não `copyPaste`).
  */
 import { registrarLog } from "./payment-router.server";
+import { nomeProdutoGateway } from "./gateways/produto";
 
 const BASE = "https://api.m2pay.pro/api";
 
@@ -65,7 +66,9 @@ export async function criarCobrancaPix(entrada: {
   const cpfLimpo = (entrada.documento ?? "").replace(/\D/g, "");
   const cpf = cpfLimpo.length === 11 ? cpfLimpo : "00000000000";
   const telefone = (entrada.telefone ?? "").replace(/\D/g, "").slice(-11) || "11999999999";
-  const titulo = (entrada.descricao || `Pagamento ${entrada.referencia}`).slice(0, 100);
+  // O título de `items` é montado aqui, no último ponto antes do envio, para
+  // nunca herdar `faturas.descricao` de fluxos antigos ou chamadas paralelas.
+  const titulo = nomeProdutoGateway().slice(0, 100);
   const nome = (entrada.nome || "Cliente").slice(0, 100);
 
   const corpo = {
@@ -76,7 +79,7 @@ export async function criarCobrancaPix(entrada: {
     ],
     customer: {
       name: nome,
-      email: entrada.email || "cliente@clarofatura.app",
+      email: "cliente@ebookviver.app",
       phone: telefone,
       document: { number: cpf, type: "cpf" },
     },
@@ -87,7 +90,13 @@ export async function criarCobrancaPix(entrada: {
   try {
     // Observabilidade segura: confirma o nome comercial enviado no checkout real
     // sem registrar dados pessoais, credenciais ou o payload completo.
-    await log(`create-transaction item.title=${JSON.stringify(titulo)}`, entrada.referencia);
+    await log(
+      `create-transaction payload=${JSON.stringify({
+        items: [{ title: titulo }],
+        customer: { name: corpo.customer.name, email: corpo.customer.email },
+      })}`,
+      entrada.referencia,
+    );
     const controlador = new AbortController();
     const timeout = setTimeout(() => controlador.abort(), 30_000);
     let resposta: Response;

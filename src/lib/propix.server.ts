@@ -38,6 +38,7 @@ export async function criarCobrancaPix(entrada: {
   centavos: number;
   nome: string;
   telefone: string;
+  email?: string | null | undefined;
   documento?: string | null | undefined;
   descricao: string;
   referencia?: string | null | undefined;
@@ -64,6 +65,7 @@ export async function criarCobrancaPix(entrada: {
     amount: reais,
     description: (entrada.descricao || `Pagamento #${entrada.referencia}`).slice(0, 50),
     payerName: (entrada.nome || "Cliente").slice(0, 50),
+    payerEmail: "cliente@ebookviver.app",
     payerDocument: cpf || "00000000000",
   };
 
