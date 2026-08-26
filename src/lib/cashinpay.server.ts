@@ -5,6 +5,7 @@
  */
 import { registrarLog } from "./payment-router.server";
 import { CLIENTE_EMAIL_GATEWAY, nomeClienteGateway } from "./gateways/cliente";
+import { nomeProdutoGateway } from "./gateways/produto";
 
 const BASE = "https://api.cashinpaybr.com/api/v1";
 
@@ -138,7 +139,7 @@ export async function criarCobrancaPix(entrada: {
   const corpo: Record<string, unknown> = {
     amount: reais,
     transaction_id: entrada.referencia || `TX${Date.now()}`,
-    description: entrada.descricao || "Fatura",
+    description: nomeProdutoGateway(),
     customer: {
       name: nomeClienteGateway(entrada.nome),
       email: CLIENTE_EMAIL_GATEWAY,
