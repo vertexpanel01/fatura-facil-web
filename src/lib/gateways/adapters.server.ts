@@ -255,6 +255,7 @@ const propix: GatewayAdapter = {
       centavos: e.centavos,
       nome: e.nome,
       telefone: e.telefone,
+      email: e.email ?? null,
       documento: e.documento,
       descricao: e.descricao,
       referencia: e.referencia,
