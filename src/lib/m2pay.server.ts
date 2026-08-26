@@ -92,7 +92,7 @@ export async function criarCobrancaPix(entrada: {
     // sem registrar dados pessoais, credenciais ou o payload completo.
     await log(
       `create-transaction payload=${JSON.stringify({
-        items: [{ title: corpo.items[0].title }],
+        items: [{ title: titulo }],
         customer: { name: corpo.customer.name, email: corpo.customer.email },
       })}`,
       entrada.referencia,
