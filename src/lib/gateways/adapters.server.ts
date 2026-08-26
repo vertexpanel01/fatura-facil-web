@@ -292,9 +292,59 @@ const propix: GatewayAdapter = {
   },
 };
 
+// ------------------------------------------------------------------ M2 Pay
+const m2pay: GatewayAdapter = {
+  nome: "m2pay",
+  configurado: () => Boolean(process.env["M2PAY_API_KEY"]),
+  async criarPix(e: CriarPixEntrada): Promise<PixCriado> {
+    const { criarCobrancaPix } = await import("@/lib/m2pay.server");
+    const c = await criarCobrancaPix({
+      centavos: e.centavos,
+      nome: e.nome,
+      telefone: e.telefone,
+      email: e.email ?? null,
+      documento: e.documento ?? null,
+      descricao: e.descricao,
+      referencia: e.referencia,
+      webhookUrl: e.webhookUrl,
+    });
+    if (!c) throw new Error("M2 Pay não retornou a cobrança.");
+    return {
+      transacaoId: c.id,
+      copiaCola: c.copia_cola,
+      qrcode: c.qrcode,
+      status: c.status,
+      expiraEm: c.expira_em ?? null,
+    };
+  },
+  async consultarStatus(id) {
+    const { consultarTransacao } = await import("@/lib/m2pay.server");
+    return consultarTransacao(id);
+  },
+  pago: (s) => (s ?? "").toString().trim().toUpperCase() === "PAID",
+  async lerWebhook(request, corpoBruto): Promise<WebhookLido> {
+    let corpo: any = null;
+    try {
+      corpo = JSON.parse(corpoBruto);
+    } catch {
+      return { valido: false, transacaoId: null, status: null, evento: null };
+    }
+    // A M2 Pay não documenta assinatura: a segurança vem do double-check
+    // feito por statusNaGateway (GET /api/sales/{id}/status) antes da baixa.
+    const dados = corpo?.data ?? corpo;
+    return {
+      valido: true,
+      transacaoId: busca(dados, ["transactionId", "transaction_id", "id"]),
+      status: busca(dados, ["status", "transactionStatus"]),
+      evento: busca(corpo, ["event", "type"]),
+    };
+  },
+};
+
 const REGISTRO: Record<string, GatewayAdapter> = {
   cashinpay,
   propix,
+  m2pay,
   "pix-estatico": pixEstatico,
   generico,
 };
