@@ -10,6 +10,7 @@
  * tentada e cada falha é registrada em public.pagamentos_log.
  */
 import { adaptadorDe } from "./gateways/adapters.server";
+import { nomeProdutoGateway } from "./gateways/produto";
 import type { Estrategia, GatewayRegistro } from "./gateways/types";
 
 export type TransacaoPix = {
