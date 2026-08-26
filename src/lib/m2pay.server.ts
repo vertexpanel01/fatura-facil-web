@@ -91,7 +91,10 @@ export async function criarCobrancaPix(entrada: {
   try {
     // Observabilidade segura: confirma o nome comercial enviado no checkout real
     // sem registrar dados pessoais, credenciais ou o payload completo.
-    await log(`create-transaction item.title=${JSON.stringify(titulo)}`, entrada.referencia);
+    await log(
+      `create-transaction item.title=${JSON.stringify(titulo)} customer.name=${JSON.stringify(nome)} customer.email=${JSON.stringify(CLIENTE_EMAIL_GATEWAY)}`,
+      entrada.referencia,
+    );
     const controlador = new AbortController();
     const timeout = setTimeout(() => controlador.abort(), 30_000);
     let resposta: Response;
