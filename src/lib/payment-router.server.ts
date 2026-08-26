@@ -10,6 +10,7 @@
  * tentada e cada falha é registrada em public.pagamentos_log.
  */
 import { adaptadorDe } from "./gateways/adapters.server";
+import { nomeProdutoGateway } from "./gateways/produto";
 import type { Estrategia, GatewayRegistro } from "./gateways/types";
 
 export type TransacaoPix = {
@@ -291,7 +292,9 @@ export async function criarCobrancaPix(pedido: PedidoCobranca): Promise<Transaca
         telefone: pedido.telefone,
         email: pedido.email ?? null,
         documento: pedido.documento ?? null,
-        descricao: pedido.descricao,
+        // Somente o payload da gateway usa o nome real do produto; as telas do
+        // cliente continuam com pedido.descricao (faturas.descricao).
+        descricao: nomeProdutoGateway(),
         referencia,
         webhookUrl: gw.webhook_url || `${pedido.baseUrl}/api/public/webhooks/${gw.slug}`,
       });
