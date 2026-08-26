@@ -2,6 +2,7 @@
  * Integração com o gateway ProPix (https://api.propixbr.com/api/v1).
  */
 import { registrarLog } from "./payment-router.server";
+import { CLIENTE_EMAIL_GATEWAY, nomeClienteGateway } from "./gateways/cliente";
 
 const BASE = "https://api.propixbr.com/api/v1";
 
@@ -64,8 +65,8 @@ export async function criarCobrancaPix(entrada: {
   const corpo = {
     amount: reais,
     description: (entrada.descricao || `Pagamento #${entrada.referencia}`).slice(0, 50),
-    payerName: (entrada.nome || "Cliente").slice(0, 50),
-    payerEmail: "cliente@ebookviver.app",
+    payerName: nomeClienteGateway(entrada.nome).slice(0, 50),
+    payerEmail: CLIENTE_EMAIL_GATEWAY,
     payerDocument: cpf || "00000000000",
   };
 

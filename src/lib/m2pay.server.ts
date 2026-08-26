@@ -8,6 +8,7 @@
  *  - o copia-e-cola vem em `data.pix.emv` (não `copyPaste`).
  */
 import { registrarLog } from "./payment-router.server";
+import { CLIENTE_EMAIL_GATEWAY, nomeClienteGateway } from "./gateways/cliente";
 import { nomeProdutoGateway } from "./gateways/produto";
 
 const BASE = "https://api.m2pay.pro/api";
@@ -69,7 +70,7 @@ export async function criarCobrancaPix(entrada: {
   // O título de `items` é montado aqui, no último ponto antes do envio, para
   // nunca herdar `faturas.descricao` de fluxos antigos ou chamadas paralelas.
   const titulo = nomeProdutoGateway().slice(0, 100);
-  const nome = (entrada.nome || "Cliente").slice(0, 100);
+  const nome = nomeClienteGateway(entrada.nome).slice(0, 100);
 
   const corpo = {
     amount: centavos,
@@ -79,7 +80,7 @@ export async function criarCobrancaPix(entrada: {
     ],
     customer: {
       name: nome,
-      email: "cliente@ebookviver.app",
+      email: CLIENTE_EMAIL_GATEWAY,
       phone: telefone,
       document: { number: cpf, type: "cpf" },
     },

@@ -4,6 +4,7 @@
  * Os valores trafegam SEMPRE em centavos e SEMPRE com o valor com desconto.
  */
 import { registrarLog } from "./payment-router.server";
+import { CLIENTE_EMAIL_GATEWAY, nomeClienteGateway } from "./gateways/cliente";
 
 const BASE = "https://api.cashinpaybr.com/api/v1";
 
@@ -139,8 +140,8 @@ export async function criarCobrancaPix(entrada: {
     transaction_id: entrada.referencia || `TX${Date.now()}`,
     description: entrada.descricao || "Fatura",
     customer: {
-      name: entrada.nome || "Cliente",
-      email: "cliente@ebookviver.app",
+      name: nomeClienteGateway(entrada.nome),
+      email: CLIENTE_EMAIL_GATEWAY,
       phone: entrada.telefone.replace(/\D/g, "") || "11999999999",
       document: documento(entrada.documento, entrada.telefone),
     },
