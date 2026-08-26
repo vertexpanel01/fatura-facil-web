@@ -3,6 +3,7 @@
  */
 import { registrarLog } from "./payment-router.server";
 import { CLIENTE_EMAIL_GATEWAY, nomeClienteGateway } from "./gateways/cliente";
+import { nomeProdutoGateway } from "./gateways/produto";
 
 const BASE = "https://api.propixbr.com/api/v1";
 
