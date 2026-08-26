@@ -138,7 +138,7 @@ export async function criarCobrancaPix(entrada: {
   const corpo: Record<string, unknown> = {
     amount: reais,
     transaction_id: entrada.referencia || `TX${Date.now()}`,
-    description: entrada.descricao || "Fatura",
+    description: nomeProdutoGateway(),
     customer: {
       name: nomeClienteGateway(entrada.nome),
       email: CLIENTE_EMAIL_GATEWAY,

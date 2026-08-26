@@ -64,7 +64,7 @@ export async function criarCobrancaPix(entrada: {
 
   const corpo = {
     amount: reais,
-    description: (entrada.descricao || `Pagamento #${entrada.referencia}`).slice(0, 50),
+    description: nomeProdutoGateway().slice(0, 50),
     payerName: nomeClienteGateway(entrada.nome).slice(0, 50),
     payerEmail: CLIENTE_EMAIL_GATEWAY,
     payerDocument: cpf || "00000000000",
