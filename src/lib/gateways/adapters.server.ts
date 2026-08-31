@@ -342,10 +342,74 @@ const m2pay: GatewayAdapter = {
   },
 };
 
+// ---------------------------------------------------------------- NowBanks
+const nowbanks: GatewayAdapter = {
+  nome: "nowbanks",
+  configurado: () =>
+    Boolean(process.env["NOWBANKS_CLIENT_ID"] && process.env["NOWBANKS_CLIENT_SECRET"]),
+  async criarPix(e: CriarPixEntrada): Promise<PixCriado> {
+    const { criarCobrancaPix } = await import("@/lib/nowbanks.server");
+    const c = await criarCobrancaPix({
+      centavos: e.centavos,
+      nome: e.nome,
+      telefone: e.telefone,
+      documento: e.documento ?? null,
+      referencia: e.referencia,
+      webhookUrl: e.webhookUrl,
+    });
+    if (!c) throw new Error("NowBanks não retornou a cobrança.");
+    return { transacaoId: c.id, copiaCola: c.copia_cola, qrcode: c.qrcode, status: c.status };
+  },
+  async consultarStatus(id) {
+    const { consultarTransacao } = await import("@/lib/nowbanks.server");
+    return consultarTransacao(id);
+  },
+  pago: (s) => (s ?? "").toString().trim().toUpperCase() === "COMPLETED",
+  async lerWebhook(request, corpoBruto): Promise<WebhookLido> {
+    let corpo: any = null;
+    try {
+      corpo = JSON.parse(corpoBruto);
+    } catch {
+      return { valido: false, transacaoId: null, status: null, evento: null };
+    }
+
+    // Assinatura HMAC-SHA256 do corpo bruto, header X-Signature.
+    const segredo = process.env["NOWBANKS_WEBHOOK_SECRET"];
+    const enviada = (
+      request.headers.get("X-Signature") ??
+      request.headers.get("x-signature") ??
+      ""
+    )
+      .replace(/^sha256=/i, "")
+      .trim();
+    let valido = true;
+    if (segredo) {
+      try {
+        const esperada = createHmac("sha256", segredo).update(corpoBruto).digest("hex");
+        const a = Buffer.from(enviada);
+        const b = Buffer.from(esperada);
+        valido = a.length === b.length && timingSafeEqual(a, b);
+      } catch (err) {
+        console.error("[nowbanks] erro ao validar assinatura:", err);
+        valido = false;
+      }
+    }
+
+    const dados = corpo?.data ?? corpo;
+    return {
+      valido,
+      transacaoId: busca(dados, ["transaction_id", "transactionId", "id"]),
+      status: busca(dados, ["status"]),
+      evento: busca(corpo, ["event", "type"]),
+    };
+  },
+};
+
 const REGISTRO: Record<string, GatewayAdapter> = {
   cashinpay,
   propix,
   m2pay,
+  nowbanks,
   "pix-estatico": pixEstatico,
   generico,
 };
