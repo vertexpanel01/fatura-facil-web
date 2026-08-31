@@ -121,8 +121,13 @@ function PaginaGateways() {
   const [form, setForm] = useState<Formulario>(VAZIO);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["gateways"],
+    queryKey: ["gateways", "credential-status-live"],
     queryFn: () => buscar({ data: undefined }),
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+    refetchInterval: 10000,
   });
   const roteamento = useQuery({
     queryKey: ["roteamento"],
