@@ -486,6 +486,7 @@ function PaginaGateways() {
                     <SelectItem value="cashinpay">CashinPay</SelectItem>
                     <SelectItem value="propix">ProPix</SelectItem>
                     <SelectItem value="m2pay">M2 Pay</SelectItem>
+                    <SelectItem value="nowbanks">NowBanks</SelectItem>
                     
                     <SelectItem value="pix-estatico">PIX estático</SelectItem>
                   </SelectContent>
